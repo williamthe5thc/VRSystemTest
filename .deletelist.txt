@@ -1,0 +1,6 @@
+Files to delete:
+1. D:\VRSystemTest\Assets\Scripts\Network\WebSocketCloseCodeDefinition.cs
+2. D:\VRSystemTest\Assets\Scripts\Network\WebSocketCloseCodeDefinition.cs.meta
+
+These files should be deleted as they're causing conflicts with the NativeWebSocket package.
+The WebSocketCloseCode enum is already defined in the actual package.

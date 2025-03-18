@@ -1,0 +1,2 @@
+This placeholder indicates that you need to create the MainMenu.unity scene file.
+Create this scene in Unity following the instructions in the SCENE_SETUP.md file.
