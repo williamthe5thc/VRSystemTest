@@ -72,6 +72,13 @@ public class MessageHandler : MonoBehaviour
         // Raise the MessageReceived event
         MessageReceived?.Invoke(this, jsonMessage);
         
+        // Update activity timestamp in SessionManager
+        var sessionManager = FindObjectOfType<SessionManager>();
+        if (sessionManager != null)
+        {
+            sessionManager.UpdateActivityTimestamp();
+        }
+        
         // Handle message
         try
         {

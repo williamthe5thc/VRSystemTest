@@ -517,18 +517,59 @@ public class SessionManager : MonoBehaviour
         }
     }
     
+    // Track the last activity time for optimizing ping frequency
+    private float lastActivityTime;
+    
     /// <summary>
-    /// Coroutine for sending periodic ping messages.
+    /// Update the activity timestamp when there's communication with the server
+    /// </summary>
+    public void UpdateActivityTimestamp()
+    {
+        lastActivityTime = Time.time;
+    }
+    
+    /// <summary>
+    /// Coroutine for sending periodic ping messages with adaptive intervals.
     /// </summary>
     private IEnumerator SendPingMessages()
     {
+        // Initialize last activity time
+        lastActivityTime = Time.time;
+        
+        // Start with the configured ping interval
+        float currentInterval = pingInterval;
+        
         while (true)
         {
-            yield return new WaitForSeconds(pingInterval);
+            yield return new WaitForSeconds(currentInterval);
             
             if (webSocketClient != null && webSocketClient.IsConnected && _isSessionActive)
             {
-                SendPingMessage();
+                // Only send pings if there's been no recent activity
+                float idleTime = Time.time - lastActivityTime;
+                
+                // If we've been inactive for at least half the ping interval
+                if (idleTime > (pingInterval / 2))
+                {
+                    SendPingMessage();
+                    
+                    // If we're in an active state like PROCESSING or RESPONDING, use faster pings
+                    if (_currentState == "PROCESSING" || _currentState == "RESPONDING")
+                    {
+                        // Use shorter interval during active processing
+                        currentInterval = pingInterval / 2;
+                    }
+                    else
+                    {
+                        // Use normal interval during idle states
+                        currentInterval = pingInterval;
+                    }
+                }
+                else
+                {
+                    // Skip ping if there was recent activity
+                    currentInterval = pingInterval;
+                }
             }
         }
     }

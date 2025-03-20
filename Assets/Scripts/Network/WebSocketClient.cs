@@ -15,15 +15,14 @@ public class WebSocketClient : MonoBehaviour
     [SerializeField] private bool autoConnect = true;
     [SerializeField] private bool reconnectOnDisconnect = true;
     [SerializeField] private float reconnectDelay = 2f;
+    [SerializeField] private float connectionTimeout = 30f;  // Increased timeout
     [SerializeField] private TMPro.TextMeshProUGUI debugText;
 
     private WebSocket _websocket;
     private bool _isReconnecting = false;
     private float _reconnectTimer = 0f;
     private int _reconnectAttempts = 0;
-    [SerializeField] private int maxReconnectAttempts = 5;
-    [SerializeField] private float connectionTimeout = 10f;
-    
+    [SerializeField] private int maxReconnectAttempts = 5;    
     // Message queue for offline operation
     private Queue<QueuedMessage> _messageQueue = new Queue<QueuedMessage>();
     private const int MAX_QUEUED_MESSAGES = 10;
@@ -218,6 +217,13 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
     /// <param name="allowQueue">Whether to allow queueing if disconnected</param>
     public new async Task<bool> SendMessage(string message, bool allowQueue = true)
     {
+        // Update activity timestamp in SessionManager
+        var sessionManager = FindObjectOfType<SessionManager>();
+        if (sessionManager != null)
+        {
+            sessionManager.UpdateActivityTimestamp();
+        }
+        
         if (!IsConnected)
         {
             LogDebug("Cannot send message: WebSocket not connected");

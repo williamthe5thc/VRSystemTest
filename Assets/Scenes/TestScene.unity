@@ -718,7 +718,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 253}
-  m_SizeDelta: {x: 500, y: 500}
+  m_SizeDelta: {x: 500, y: 480}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &557685126
 MonoBehaviour:
@@ -740,7 +740,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: User input system intializing...
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -817,6 +817,79 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 557685124}
   m_CullTransparentMesh: 1
+--- !u!1001 &560989748
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.15773
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.15773
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.15773
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.032
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.557
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.3777873
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.046526536
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.99891704
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 174.667
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373877, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 558158365799373879, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
+      propertyPath: m_Name
+      value: Avatar (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 42eb885b704d5364ebe109bc812b81da, type: 3}
 --- !u!1 &566510613
 GameObject:
   m_ObjectHideFlags: 0
@@ -3916,6 +3989,8 @@ MonoBehaviour:
   reconnectOnDisconnect: 1
   reconnectDelay: 2
   debugText: {fileID: 911798208}
+  maxReconnectAttempts: 5
+  connectionTimeout: 10
 --- !u!1 &1830644949
 GameObject:
   m_ObjectHideFlags: 0
@@ -4002,7 +4077,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: -250}
-  m_SizeDelta: {x: 500, y: 500}
+  m_SizeDelta: {x: 500, y: 480}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1896632679
 MonoBehaviour:
@@ -4024,7 +4099,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: LLM system intializing...
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4530,3 +4605,4 @@ SceneRoots:
   - {fileID: 1436957254}
   - {fileID: 1515293780}
   - {fileID: 2109112393}
+  - {fileID: 560989748}

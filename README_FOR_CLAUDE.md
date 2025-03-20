@@ -1,14 +1,82 @@
 # VR Interview System - Technical Guide for Claude (Unity Client)
 
+## Project Location & Structure
+
+- **Development Directory**: `D:\VRSystemTest\`
+- **Unity Project Structure**:
+  ```
+  VRSystemTest/
+  ├── Assets/
+  │   ├── Scripts/
+  │   │   ├── Audio/              # Audio recording and playback
+  │   │   ├── Avatar/             # Avatar animation and control
+  │   │   ├── Core/               # Core systems and managers
+  │   │   ├── Environment/        # VR environment elements
+  │   │   ├── Network/            # WebSocket and communication
+  │   │   ├── Tests/              # Testing scripts
+  │   │   └── UI/                 # User interface components
+  │   ├── Prefabs/                # Reusable object prefabs
+  │   ├── Scenes/                 # Unity scenes
+  │   └── Resources/              # Runtime resources
+  ├── Packages/                   # Unity packages
+  ├── ProjectSettings/            # Unity project settings
+  └── docs/                       # Documentation files
+  ```
+- **Documentation**: Detailed documentation is now available in the `docs/` folder
+
+> **Note**: For detailed information about the Python server implementation, please refer to `D:\vr_interview_system\README_FOR_CLAUDE.md`, which contains extensive details about the server architecture, audio processing pipeline, and LLM integration.
+
 ## System Overview
 
 The VR Interview System is an AI-powered interview practice platform in virtual reality. The Unity client provides the VR interface, avatar animation, audio management, and user interaction, while communicating with a Python server that handles language processing and conversation management.
 
-> **Note**: For detailed information about the Python server implementation, please refer to `D:\vr_interview_system\README_FOR_CLAUDE.md`, which contains extensive details about the server architecture, audio processing pipeline, and LLM integration.
+### Key Features
 
-## Client Architecture
+- Real-time speech-to-text and text-to-speech processing
+- Animated virtual interviewer with lip sync and facial expressions
+- WebSocket communication with a Python backend server
+- Voice activity detection and audio streaming
+- Responsive avatar with contextual gestures and expressions
+- VR-optimized user interface
+- Session management and state synchronization
+- Detailed feedback and debugging tools
 
-The Unity client follows a component-based architecture with several key modules:
+## System Architecture
+
+The VR Interview System follows a modular architecture with clear separation of concerns:
+
+```
+                  ┌─────────────────┐
+                  │                 │
+                  │   AppManager    │◄───────────┐
+                  │                 │            │
+                  └────────┬────────┘            │
+                           │                     │
+                           ▼                     │
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│                 │  │                 │  │                 │
+│  WebSocketClient│◄─┤ SessionManager  │──┤  SettingsManager│
+│                 │  │                 │  │                 │
+└────────┬────────┘  └────────┬────────┘  └─────────────────┘
+         │                    │
+         │                    │
+         ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│                 │  │                 │  │                 │
+│  MessageHandler │──┤  AudioHandler   │──┤  UIManager      │
+│                 │  │                 │  │                 │
+└────────┬────────┘  └────────┬────────┘  └─────────────────┘
+         │                    │
+         │                    │
+         ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐
+│                 │  │                 │
+│ AvatarController│  │ MicrophoneCapture
+│                 │  │                 │
+└─────────────────┘  └─────────────────┘
+```
+
+## Core Components
 
 ### Core Communication Components
 
@@ -52,11 +120,11 @@ The Unity client follows a component-based architecture with several key modules
    - Controls audio settings and volume
    - Notifies when playback completes
 
-2. **AudioStreamer.cs**
-   - Handles streaming audio from server URLs
-   - Downloads and processes audio files
-   - Provides fallback mechanisms for failed streaming
-   - Sends playback status updates to server
+2. **AudioProcessor.cs**
+   - Processes recorded audio for transmission
+   - Converts between audio formats
+   - Calculates audio quality and levels
+   - Optimizes audio data size
 
 3. **MicrophoneCapture.cs**
    - Captures audio from VR headset microphone
@@ -64,47 +132,69 @@ The Unity client follows a component-based architecture with several key modules
    - Implements voice activity detection
    - Manages audio recording state
 
-### Support Components
+### Avatar Components
 
-1. **ProgressHandler.cs**
-   - Processes progress updates from server
-   - Shows "thinking" indicators during processing
-   - Updates progress displays and status messages
-   - Handles transcript updates
+1. **AvatarController.cs**
+   - Manages avatar state and animations
+   - Controls state transitions
+   - Synchronizes with audio playback
+   - Manages animation speed and blending
 
-2. **SessionSynchronizer.cs**
-   - Ensures client-server session synchronization
-   - Maintains session ID consistency
-   - Provides client capabilities information to server
-   - Handles reconnection session recovery
+2. **LipSync.cs**
+   - Controls avatar lip movements during speech
+   - Synchronizes with audio amplitude
+   - Manages viseme transitions
+   - Provides natural mouth movements
 
-## Recent Enhancements
+3. **FacialExpressions.cs**
+   - Handles avatar facial expressions
+   - Blends between emotion states
+   - Controls eye blinking and micro-expressions
+   - Provides emotional responses based on context
 
-The Unity client has been recently improved with:
+4. **GestureSystem.cs**
+   - Controls avatar hand and body gestures
+   - Synchronizes gestures with speech content
+   - Manages random and contextual gestures
+   - Provides natural body language
 
-1. **Transcript Display System**
-   - Shows both user speech and interviewer responses
-   - Preserves user text while waiting for responses
-   - Provides "Interviewer is thinking..." feedback
-   - Updates response text when received
+## Data Flow
 
-2. **Enhanced Error Handling**
-   - Better handling of connection interruptions
-   - Graceful fallbacks for audio playback issues
-   - Improved error message display
-   - Session recovery mechanisms
+### User Speech Recording Flow
 
-3. **Progress Visualization**
-   - Displays progress updates during processing
-   - Shows "thinking" messages during LLM generation
-   - Provides status updates for long operations
-   - Visual indicators for system state
+```
+User speaks → MicrophoneCapture.OnRecordingStarted → UIManager updates UI
+                    ↓
+MicrophoneCapture records audio → OnAudioLevelChanged → UIManager updates audio level indicator
+                    ↓
+MicrophoneCapture.OnRecordingStopped → AudioProcessor processes audio
+                    ↓
+AudioProcessor sends to WebSocketClient → WebSocketClient sends to server
+```
 
-4. **Session Synchronization**
-   - Fixed client-server session ID mismatches
-   - Implemented mapping between client and server IDs
-   - Added reconnection logic with session preservation
-   - Enhanced capability negotiation with server
+### Server Response Flow
+
+```
+WebSocketClient.OnMessageReceived → MessageHandler.ProcessMessage
+                    ↓
+MessageHandler determines message type and triggers specific events:
+   ↓                     ↓                      ↓
+OnStateUpdate     OnAudioResponse          OnError
+   ↓                     ↓                      ↓
+SessionManager   AudioPlayback.PlayAudio   UIManager.ShowError
+updates state           ↓                     
+   ↓            OnPlaybackStarted
+   ↓                   ↓
+UIManager      AvatarController.SetSpeakingState
+updates UI             ↓
+                 LipSync.StartLipSync
+                        ↓
+               AudioPlayback.OnPlaybackProgress → LipSync.UpdateLipSync
+                        ↓
+               AudioPlayback.OnPlaybackCompleted → AvatarController.SetAttentiveState
+                        ↓
+               SessionManager.NotifyPlaybackComplete → Server
+```
 
 ## Event System
 
@@ -224,6 +314,34 @@ private void OnProgressUpdate(string jsonMessage)
 }
 ```
 
+## Recent Enhancements
+
+The Unity client has been recently improved with:
+
+1. **Transcript Display System**
+   - Shows both user speech and interviewer responses
+   - Preserves user text while waiting for responses
+   - Provides "Interviewer is thinking..." feedback
+   - Updates response text when received
+
+2. **Enhanced Error Handling**
+   - Better handling of connection interruptions
+   - Graceful fallbacks for audio playback issues
+   - Improved error message display
+   - Session recovery mechanisms
+
+3. **Progress Visualization**
+   - Displays progress updates during processing
+   - Shows "thinking" messages during LLM generation
+   - Provides status updates for long operations
+   - Visual indicators for system state
+
+4. **Session Synchronization**
+   - Fixed client-server session ID mismatches
+   - Implemented mapping between client and server IDs
+   - Added reconnection logic with session preservation
+   - Enhanced capability negotiation with server
+
 ## Common Issues and Solutions
 
 ### 1. Interface vs. MonoBehaviour Pattern
@@ -247,6 +365,62 @@ Issues occurred when client and server had different session IDs. The fix involv
 - Accepting server-generated session IDs
 - Implementing mapping between client and server IDs
 - Properly handling ID synchronization during reconnections
+
+### 4. Connection Issues
+
+1. **WebSocket Connection Failures**
+   - **Symptoms**: Unable to connect to server, frequent disconnections
+   - **Solution**: Verify server URL in settings, check network connectivity, ensure server is running
+
+2. **Message Handling Errors**
+   - **Symptoms**: Error logs about malformed JSON, missing fields
+   - **Solution**: Ensure client and server are compatible versions, validate message structure
+
+### 5. Audio Problems
+
+1. **Microphone Access Issues**
+   - **Symptoms**: No microphone devices available, recording fails
+   - **Solution**: Add microphone permissions to manifest, request permissions at runtime
+
+2. **Audio Quality Issues**
+   - **Symptoms**: Distortion in recorded audio
+   - **Solution**: Adjust audio levels, implement dynamic gain control
+
+### 6. Performance Issues
+
+1. **Frame Rate Drops**
+   - **Symptoms**: Stuttering during audio processing or avatar animation
+   - **Solution**: Implement threading for audio processing, use LOD for avatar at distance
+
+2. **Memory Issues**
+   - **Symptoms**: Growing memory usage, eventual crash
+   - **Solution**: Properly dispose audio buffers, limit transcript history
+
+## Configuration
+
+### Server Configuration
+
+Key server settings:
+- `ServerUrl`: WebSocket server URL (default: "ws://localhost:8765")
+- `AutoConnect`: Whether to connect automatically on startup
+- `ReconnectOnDisconnect`: Attempt automatic reconnection when connection lost
+- `MaxReconnectAttempts`: Maximum number of reconnection attempts
+
+### Audio Configuration
+
+Key audio settings:
+- `SampleRate`: Audio sample rate (default: 16000)
+- `Channels`: Audio channel count (mono/stereo)
+- `VoiceDetectionThreshold`: Threshold for voice activity detection
+- `SilenceTimeoutSec`: Time of silence before stopping recording
+
+### Avatar Configuration
+
+Key avatar settings:
+- `BlendDuration`: Duration for blending between facial expressions
+- `RandomGestureInterval`: Frequency of random gestures
+- `RandomBlinkInterval`: Frequency of blinking animations
+- `AnimationSpeed`: General animation speed multiplier
 
 ## Development Guidelines
 
@@ -303,26 +477,15 @@ When helping with this project:
    - Improving maintainability
    - Enhancing readability
 
-## Project Structure
-
-The client project follows Unity's standard structure with scripts organized by functionality:
-
-```
-D:\VRSystemTest\
-├── Assets/
-│   ├── Scripts/
-│   │   ├── Audio/              # Audio recording and playback
-│   │   ├── Avatar/             # Avatar animation and control
-│   │   ├── Core/               # Core systems and managers
-│   │   ├── Network/            # WebSocket and message handling
-│   │   ├── UI/                 # User interface components
-│   │   └── Utils/              # Utility scripts
-│   ├── Prefabs/                # Reusable object prefabs
-│   ├── Scenes/                 # Unity scenes
-│   └── Resources/              # Runtime resources
-├── Packages/                   # Unity packages
-└── ProjectSettings/            # Unity project settings
-```
+6. **Documentation**
+   - Detailed documentation has been created (see docs/ folder):
+     - System Overview
+     - Communication Documentation
+     - Audio Documentation
+     - UI Documentation
+     - Avatar Documentation
+     - Event System Documentation
+     - Class Reference
 
 ## Conclusion
 
