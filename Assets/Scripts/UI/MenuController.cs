@@ -15,6 +15,7 @@ public class MenuController : MonoBehaviour
     
     [Header("Main Menu Elements")]
     [SerializeField] private Button startButton;
+    [SerializeField] private Button testSceneButton; // New button for direct test scene access
     [SerializeField] private Button settingsButton;
     [SerializeField] private Button infoButton;
     [SerializeField] private Button exitButton;
@@ -29,9 +30,9 @@ public class MenuController : MonoBehaviour
     };
     [SerializeField] private List<string> environmentScenes = new List<string>()
     {
-        "CorporateOffice",
-        "StartupOffice",
-        "CasualOffice"
+        "Scenes/Environments/Corporate",
+        "Scenes/Environments/Startup",
+        "Scenes/Environments/Casual"
     };
     
     [Header("Avatar Selection")]
@@ -132,6 +133,12 @@ public class MenuController : MonoBehaviour
         if (startButton != null)
         {
             startButton.onClick.AddListener(OnStartClicked);
+        }
+        
+        // Test scene button
+        if (testSceneButton != null)
+        {
+            testSceneButton.onClick.AddListener(OnTestSceneClicked);
         }
         
         if (settingsButton != null)
@@ -250,8 +257,24 @@ public class MenuController : MonoBehaviour
             // Set avatar information for the next scene
             PlayerPrefs.SetString("SelectedAvatar", selectedAvatar);
             
-            // Load the scene
-            SceneManager.LoadScene(environmentScenes[environmentIndex]);
+            string sceneName = environmentScenes[environmentIndex];
+            Debug.Log($"Attempting to load scene: {sceneName}");
+            
+            try {
+                // Try to load the scene
+                SceneManager.LoadScene(sceneName);
+            }
+            catch (System.Exception e) {
+                // If that fails, fall back to the TestScene which we know exists
+                Debug.LogError($"Failed to load scene {sceneName}: {e.Message}. Falling back to TestScene.");
+                SceneManager.LoadScene("Scenes/TestScene");
+            }
+        }
+        else
+        {
+            Debug.LogError($"Invalid environment index: {environmentIndex}");
+            // Fall back to test scene
+            SceneManager.LoadScene("Scenes/TestScene");
         }
     }
     
@@ -293,6 +316,23 @@ public class MenuController : MonoBehaviour
         if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
         if (settingsPanel != null) settingsPanel.SetActive(false);
         if (infoPanel != null) infoPanel.SetActive(true);
+    }
+    
+    // Direct access to Test Scene
+    private void OnTestSceneClicked()
+    {
+        // Save current settings
+        if (settingsManager != null)
+        {
+            settingsManager.SaveSettings();
+        }
+        
+        // Set avatar information for the next scene
+        PlayerPrefs.SetString("SelectedAvatar", selectedAvatar);
+        
+        // Load the TestScene directly
+        Debug.Log("Loading Test Scene directly");
+        SceneManager.LoadScene("Scenes/TestScene");
     }
     
     // New methods for interview menu

@@ -52,6 +52,13 @@ public class SettingsManager : MonoBehaviour
         }
         
         _instance = this;
+        
+        // Fix: Make the GameObject a root object before using DontDestroyOnLoad
+        if (transform.parent != null)
+        {
+            transform.SetParent(null);
+        }
+        
         DontDestroyOnLoad(gameObject);
     }
     

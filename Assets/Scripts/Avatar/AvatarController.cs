@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor.Animations;
+#endif
 
 /// <summary>
 /// Main controller for the interviewer avatar.
@@ -42,8 +45,54 @@ public class AvatarController : MonoBehaviour
         // Check required components
         if (animator == null)
         {
-            Debug.LogError("Animator not assigned to AvatarController!");
-            return;
+            Debug.LogWarning("Animator not assigned to AvatarController - adding a dummy animator.");
+            
+            // Add an Animator component to this GameObject
+            animator = gameObject.AddComponent<Animator>();
+            
+            // Create a simple runtime animation controller that works in both editor and build
+            var runtimeController = new AnimatorOverrideController();
+            RuntimeAnimatorController baseController = null;
+            
+            // Try to find any existing controller in the project to use as a base
+            var existingControllers = Resources.FindObjectsOfTypeAll<RuntimeAnimatorController>();
+            if (existingControllers != null && existingControllers.Length > 0)
+            {
+                baseController = existingControllers[0];
+            }
+            
+            // If we found a base controller, use it for the override
+            if (baseController != null)
+            {
+                runtimeController.runtimeAnimatorController = baseController;
+                animator.runtimeAnimatorController = runtimeController;
+                
+                Debug.Log("Using base controller: " + baseController.name);
+            }
+            else
+            {
+                Debug.LogWarning("No base controller found for animation overrides");
+                
+                // Without a base controller, we'll just set up in editor mode
+                #if UNITY_EDITOR
+                // Editor-only: Create a new AnimatorController (only works in editor)
+                var controller = new AnimatorController();
+                controller.name = "DummyAvatarController";
+                
+                // Add parameters for each animation trigger
+                controller.AddParameter(idleTrigger, AnimatorControllerParameterType.Trigger);
+                controller.AddParameter(listeningTrigger, AnimatorControllerParameterType.Trigger);
+                controller.AddParameter(thinkingTrigger, AnimatorControllerParameterType.Trigger);
+                controller.AddParameter(speakingTrigger, AnimatorControllerParameterType.Trigger);
+                controller.AddParameter(attentiveTrigger, AnimatorControllerParameterType.Trigger);
+                controller.AddParameter(confusedTrigger, AnimatorControllerParameterType.Trigger);
+                
+                // Assign the controller
+                animator.runtimeAnimatorController = controller;
+                #endif
+            }
+            
+            Debug.Log("Added dummy Animator for AvatarController");
         }
         
         InitializeComponents();

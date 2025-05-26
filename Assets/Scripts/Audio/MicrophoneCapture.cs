@@ -2,9 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using VRInterview; // Added namespace reference for PlatformManager
 
 /// <summary>
 /// Handles microphone input capture and processing for the interview system.
+/// Cross-platform compatible with Mac, Windows, and AMD GPU systems.
 /// </summary>
 public class MicrophoneCapture : MonoBehaviour
 {
@@ -30,6 +32,8 @@ public class MicrophoneCapture : MonoBehaviour
     private int _lastSamplePosition = 0;
     private List<float> _currentRecordingSamples = new List<float>();
     private float _currentAudioLevel = 0f;
+    private bool _isInitialized = false;
+    private int _platformOptimalSampleRate;
     
     // Events
     public event Action OnRecordingStarted;
@@ -44,7 +48,7 @@ public class MicrophoneCapture : MonoBehaviour
     
     private void Start()
     {
-        InitializeMicrophone();
+        Initialize();
         
         // Listen for state changes
         if (sessionManager != null)
@@ -58,10 +62,30 @@ public class MicrophoneCapture : MonoBehaviour
     }
     
     /// <summary>
-    /// Initializes the microphone system.
+    /// Initializes the microphone system with platform-specific settings.
     /// </summary>
-    private void InitializeMicrophone()
+    public void Initialize()
     {
+        if (_isInitialized) return;
+        
+        // Get platform-specific settings
+        if (PlatformManager.Instance != null)
+        {
+            _platformOptimalSampleRate = PlatformManager.Instance.GetOptimalSampleRate();
+            
+            // Use platform-recommended sample rate if one wasn't explicitly set
+            if (sampleRate <= 0)
+            {
+                sampleRate = _platformOptimalSampleRate;
+            }
+            
+            Debug.Log($"Platform optimal sample rate: {_platformOptimalSampleRate} Hz, Using: {sampleRate} Hz");
+        }
+        else
+        {
+            Debug.LogWarning("PlatformManager not available. Using default sample rate.");
+        }
+        
         // Check if microphone is available
         if (Microphone.devices.Length == 0)
         {
@@ -69,40 +93,61 @@ public class MicrophoneCapture : MonoBehaviour
             return;
         }
         
-        // Get default microphone from settings or auto-select
-        if (SettingsManager.Instance != null)
+        // Get platform-specific microphone device
+        if (PlatformManager.Instance != null && autoSelectMicrophone)
         {
-            string savedMicrophone = SettingsManager.Instance.GetSetting<string>("Microphone");
-            
-            if (!string.IsNullOrEmpty(savedMicrophone) && Array.IndexOf(Microphone.devices, savedMicrophone) != -1)
+            _selectedMicrophone = PlatformManager.Instance.GetDefaultMicrophoneDevice();
+            Debug.Log($"Platform selected microphone: {_selectedMicrophone}");
+        }
+        else
+        {
+            // Get default microphone from settings or auto-select
+            if (SettingsManager.Instance != null)
             {
-                _selectedMicrophone = savedMicrophone;
-                Debug.Log($"Using saved microphone: {_selectedMicrophone}");
+                string savedMicrophone = SettingsManager.Instance.GetSetting<string>("Microphone");
+                
+                if (!string.IsNullOrEmpty(savedMicrophone) && Array.IndexOf(Microphone.devices, savedMicrophone) != -1)
+                {
+                    _selectedMicrophone = savedMicrophone;
+                    Debug.Log($"Using saved microphone: {_selectedMicrophone}");
+                }
+                else if (autoSelectMicrophone)
+                {
+                    // Use first microphone by default
+                    _selectedMicrophone = Microphone.devices[0];
+                    Debug.Log($"Auto-selected microphone: {_selectedMicrophone}");
+                    
+                    // Save selection
+                    if (SettingsManager.Instance != null)
+                    {
+                        SettingsManager.Instance.SetSetting("Microphone", _selectedMicrophone);
+                        SettingsManager.Instance.SaveSettings();
+                    }
+                }
             }
             else if (autoSelectMicrophone)
             {
                 // Use first microphone by default
                 _selectedMicrophone = Microphone.devices[0];
                 Debug.Log($"Auto-selected microphone: {_selectedMicrophone}");
-                
-                // Save selection
-                if (SettingsManager.Instance != null)
-                {
-                    SettingsManager.Instance.SetSetting("Microphone", _selectedMicrophone);
-                    SettingsManager.Instance.SaveSettings();
-                }
             }
         }
-        else if (autoSelectMicrophone)
+        
+        _isInitialized = true;
+        
+        // Log all available microphones for debugging
+        if (debugMode)
         {
-            // Use first microphone by default
-            _selectedMicrophone = Microphone.devices[0];
-            Debug.Log($"Auto-selected microphone: {_selectedMicrophone}");
+            Debug.Log("Available microphones:");
+            foreach (string device in Microphone.devices)
+            {
+                Debug.Log($"- {device}");
+            }
         }
     }
     
     /// <summary>
-    /// Starts recording from the microphone.
+    /// Starts recording from the microphone with platform-specific settings.
     /// </summary>
     public void StartRecording()
     {
@@ -112,11 +157,16 @@ public class MicrophoneCapture : MonoBehaviour
             return;
         }
         
+        if (!_isInitialized)
+        {
+            Initialize();
+        }
+        
         // Make sure we have a valid microphone selected
         if (string.IsNullOrEmpty(_selectedMicrophone))
         {
             Debug.LogWarning("No microphone selected, attempting to initialize");
-            InitializeMicrophone();
+            Initialize();
             
             // If still no microphone, try to use default
             if (string.IsNullOrEmpty(_selectedMicrophone))
@@ -172,8 +222,12 @@ public class MicrophoneCapture : MonoBehaviour
         
         try
         {
-            // Force use of the requested sample rate
-            _microphoneClip = Microphone.Start(_selectedMicrophone, true, recordingBufferLengthSec, sampleRate);
+            // Check if the device supports the selected sample rate
+            // Some platforms (especially macOS) may not support lower sample rates
+            int deviceSampleRate = GetCompatibleSampleRate();
+            
+            // Start recording
+            _microphoneClip = Microphone.Start(_selectedMicrophone, true, recordingBufferLengthSec, deviceSampleRate);
         }
         catch (Exception ex)
         {
@@ -228,6 +282,54 @@ public class MicrophoneCapture : MonoBehaviour
         {
             Debug.LogError($"Error in StartRecordingAfterDelay: {exception.Message}");
         }
+    }
+    
+    /// <summary>
+    /// Gets a sample rate that is compatible with the current microphone device.
+    /// macOS often requires higher sample rates.
+    /// </summary>
+    private int GetCompatibleSampleRate()
+    {
+        // Check if we have platform information
+        if (PlatformManager.Instance != null)
+        {
+            var platform = PlatformManager.Instance.CurrentPlatform;
+            
+            // Special handling for macOS
+            if (platform == PlatformManager.Platform.MacOS)
+            {
+                int minFreq, maxFreq;
+                Microphone.GetDeviceCaps(_selectedMicrophone, out minFreq, out maxFreq);
+                
+                Debug.Log($"macOS microphone caps: min={minFreq}Hz, max={maxFreq}Hz");
+                
+                // If no limitations (0,0) or only min limit (>0,0), use the platform's optimal rate
+                if (maxFreq == 0)
+                {
+                    return _platformOptimalSampleRate;
+                }
+                
+                // Check if our desired rate is within range
+                if (sampleRate >= minFreq && sampleRate <= maxFreq)
+                {
+                    return sampleRate;
+                }
+                // Otherwise use the closest valid rate
+                else if (sampleRate < minFreq)
+                {
+                    Debug.LogWarning($"Sample rate {sampleRate} too low for macOS device. Using minimum: {minFreq}");
+                    return minFreq;
+                }
+                else
+                {
+                    Debug.LogWarning($"Sample rate {sampleRate} too high for macOS device. Using maximum: {maxFreq}");
+                    return maxFreq;
+                }
+            }
+        }
+        
+        // For other platforms, use the configured sample rate
+        return sampleRate;
     }
     
     /// <summary>
@@ -529,15 +631,22 @@ public class MicrophoneCapture : MonoBehaviour
                 "RecordedAudio",
                 _currentRecordingSamples.Count,
                 1, // Mono
-                sampleRate,
+                _microphoneClip?.frequency ?? sampleRate, // Use actual recorded frequency if available
                 false
             );
             
             recordedClip.SetData(_currentRecordingSamples.ToArray(), 0);
             
-            // Process audio for server
+            // Process audio for server - may need resampling on Mac
             if (audioProcessor != null)
             {
+                // Check if we need to resample the audio
+                if (recordedClip.frequency != sampleRate)
+                {
+                    Debug.Log($"Resampling audio from {recordedClip.frequency}Hz to {sampleRate}Hz");
+                    recordedClip = audioProcessor.ResampleAudioClip(recordedClip, sampleRate);
+                }
+                
                 byte[] processedAudio = audioProcessor.ProcessAudioForServer(recordedClip);
                 
                 Debug.Log($"Audio processed successfully: {processedAudio.Length} bytes");
@@ -656,13 +765,27 @@ public class MicrophoneCapture : MonoBehaviour
         if ((previousState == "WAITING" || previousState == "IDLE") && 
             currentState == "LISTENING")
         {
-            StartRecording();
+            // Add a safety check - only start recording if not already recording
+            if (!_isRecording)
+            {
+                Debug.Log("Starting microphone recording due to LISTENING state");
+                StartRecording();
+            }
+            else
+            {
+                Debug.LogWarning("Received LISTENING state but microphone already recording");
+            }
         }
         
         // Stop recording when transitioning to PROCESSING
-        if (previousState == "LISTENING" && currentState == "PROCESSING")
+        if (currentState == "PROCESSING")
         {
-            StopRecording();
+            // Always stop recording when entering PROCESSING state, regardless of previous state
+            if (_isRecording)
+            {
+                Debug.Log("Stopping microphone recording due to PROCESSING state");
+                StopRecording();
+            }
         }
     }
     

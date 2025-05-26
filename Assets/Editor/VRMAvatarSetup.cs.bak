@@ -1,0 +1,312 @@
+using System;
+using System.Collections;
+using UnityEngine;
+using VRM;
+using VRInterview.Audio;
+
+/// <summary>
+/// Handles setup and initialization of VRM avatars for the interview system
+/// </summary>
+public class VRMAvatarSetup : MonoBehaviour
+{
+    [SerializeField] private GameObject vrmAvatarRoot;
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioPlayback audioPlayback;
+    [SerializeField] private AvatarController avatarController;
+    
+    [Header("VRM Components")]
+    [SerializeField] private VRMBlendShapeProxy blendShapeProxy;
+    [SerializeField] private Animator animator;
+    
+    [Header("System Creation")]
+    [SerializeField] private bool createMissingComponents = true;
+    [SerializeField] private bool replaceExistingComponents = false;
+    
+    private VRMLipSync lipSync;
+    private VRMFacialExpressions facialExpressions;
+
+    private void Start()
+    {
+        // Setup routine
+        SetupVRMAvatar();
+    }
+    
+    /// <summary>
+    /// Sets up the VRM avatar with all required components
+    /// </summary>
+    public void SetupVRMAvatar()
+    {
+        // Step 1: Find the VRM model if not assigned
+        if (vrmAvatarRoot == null)
+        {
+            var meta = FindObjectOfType<VRMMeta>();
+            if (meta != null)
+            {
+                vrmAvatarRoot = meta.gameObject;
+                Debug.Log($"Found VRM avatar: {vrmAvatarRoot.name}");
+            }
+            else
+            {
+                Debug.LogError("No VRM avatar found in the scene!");
+                return;
+            }
+        }
+        
+        // Step 2: Find required VRM components
+        if (blendShapeProxy == null)
+        {
+            blendShapeProxy = vrmAvatarRoot.GetComponent<VRMBlendShapeProxy>();
+            
+            if (blendShapeProxy == null)
+            {
+                blendShapeProxy = vrmAvatarRoot.GetComponentInChildren<VRMBlendShapeProxy>();
+                
+                if (blendShapeProxy == null)
+                {
+                    Debug.LogError("VRMBlendShapeProxy not found on VRM avatar!");
+                    return;
+                }
+            }
+        }
+        
+        if (animator == null)
+        {
+            animator = vrmAvatarRoot.GetComponent<Animator>();
+            
+            if (animator == null)
+            {
+                // Search recursively in all children
+                animator = vrmAvatarRoot.GetComponentInChildren<Animator>(true);
+                
+                if (animator == null)
+                {
+                    Debug.LogWarning("Animator not found on VRM avatar! Will create a new one if needed.");
+                }
+            }
+        }
+        
+        // Step 3: Find audio components
+        if (audioPlayback == null)
+        {
+            audioPlayback = FindObjectOfType<AudioPlayback>();
+            
+            if (audioPlayback == null)
+            {
+                Debug.LogWarning("AudioPlayback not found in the scene!");
+            }
+        }
+        
+        if (audioSource == null && audioPlayback != null)
+        {
+            audioSource = audioPlayback.GetComponent<AudioSource>();
+            
+            if (audioSource == null && audioPlayback.gameObject != null)
+            {
+                // Try to find the AudioSource
+                audioSource = audioPlayback.gameObject.GetComponent<AudioSource>();
+                
+                // If still null, create one
+                if (audioSource == null && createMissingComponents)
+                {
+                    audioSource = audioPlayback.gameObject.AddComponent<AudioSource>();
+                    audioSource.playOnAwake = false;
+                    audioSource.loop = false;
+                    Debug.Log("Created AudioSource on AudioPlayback");
+                }
+            }
+        }
+        
+        // Step 4: Set up VRM-specific components
+        SetupVRMLipSync();
+        SetupVRMFacialExpressions();
+        SetupAvatarController();
+        
+        // Additional setup for Animator if needed
+        if (animator == null && createMissingComponents)
+        {
+            // Only create Animator if needed
+            if (vrmAvatarRoot.GetComponent<Animator>() == null)
+            {
+                animator = vrmAvatarRoot.AddComponent<Animator>();
+                
+                // Create a very basic runtime animator controller
+                var controller = new AnimatorOverrideController();
+                animator.runtimeAnimatorController = Resources.Load<RuntimeAnimatorController>("DefaultAnimator");
+                
+                if (animator.runtimeAnimatorController == null)
+                {
+                    Debug.LogWarning("Could not find default animator controller. Animation will not work properly.");
+                }
+                
+                Debug.Log("Created Animator on VRM avatar");
+            }
+            else
+            {
+                animator = vrmAvatarRoot.GetComponent<Animator>();
+                Debug.Log("Found existing Animator on VRM avatar");
+            }
+        }
+        
+        Debug.Log("VRM avatar setup complete");
+    }
+    
+    /// <summary>
+    /// Sets up the VRM lip sync component
+    /// </summary>
+    private void SetupVRMLipSync()
+    {
+        // Check if we have an existing component
+        lipSync = vrmAvatarRoot.GetComponent<VRMLipSync>();
+        
+        // Create if missing and allowed
+        if (lipSync == null && createMissingComponents)
+        {
+            // Check if there's a standard LipSync component that should be replaced
+            LipSync existingLipSync = vrmAvatarRoot.GetComponent<LipSync>();
+            if (existingLipSync != null && replaceExistingComponents)
+            {
+                DestroyImmediate(existingLipSync);
+                Debug.Log("Removed standard LipSync component");
+            }
+            
+            lipSync = vrmAvatarRoot.AddComponent<VRMLipSync>();
+            Debug.Log("Added VRMLipSync component to avatar");
+        }
+        else if (lipSync != null && replaceExistingComponents)
+        {
+            DestroyImmediate(lipSync);
+            lipSync = vrmAvatarRoot.AddComponent<VRMLipSync>();
+            Debug.Log("Replaced existing VRMLipSync component");
+        }
+        
+        // Configure the component
+        if (lipSync != null)
+        {
+            // Use SerializedObject for more reliable property setting
+            SerializedObject serializedLipSync = new SerializedObject(lipSync);
+            
+            SerializedProperty audioSourceProp = serializedLipSync.FindProperty("audioSource");
+            if (audioSourceProp != null && audioSource != null)
+            {
+                audioSourceProp.objectReferenceValue = audioSource;
+            }
+            
+            SerializedProperty blendShapeProxyProp = serializedLipSync.FindProperty("blendShapeProxy");
+            if (blendShapeProxyProp != null && blendShapeProxy != null)
+            {
+                blendShapeProxyProp.objectReferenceValue = blendShapeProxy;
+            }
+            
+            serializedLipSync.ApplyModifiedProperties();
+            Debug.Log("Configured VRMLipSync component");
+        }
+    }
+    
+    /// <summary>
+    /// Sets up the VRM facial expressions component
+    /// </summary>
+    private void SetupVRMFacialExpressions()
+    {
+        // Check if we have an existing component
+        facialExpressions = vrmAvatarRoot.GetComponent<VRMFacialExpressions>();
+        
+        // Create if missing and allowed
+        if (facialExpressions == null && createMissingComponents)
+        {
+            // Check if there's a standard FacialExpressions component that should be replaced
+            FacialExpressions existingExpressions = vrmAvatarRoot.GetComponent<FacialExpressions>();
+            if (existingExpressions != null && replaceExistingComponents)
+            {
+                DestroyImmediate(existingExpressions);
+                Debug.Log("Removed standard FacialExpressions component");
+            }
+            
+            facialExpressions = vrmAvatarRoot.AddComponent<VRMFacialExpressions>();
+            Debug.Log("Added VRMFacialExpressions component to avatar");
+        }
+        else if (facialExpressions != null && replaceExistingComponents)
+        {
+            DestroyImmediate(facialExpressions);
+            facialExpressions = vrmAvatarRoot.AddComponent<VRMFacialExpressions>();
+            Debug.Log("Replaced existing VRMFacialExpressions component");
+        }
+        
+        // Configure the component
+        if (facialExpressions != null)
+        {
+            // Use SerializedObject for more reliable property setting
+            SerializedObject serializedExpressions = new SerializedObject(facialExpressions);
+            
+            SerializedProperty blendShapeProxyProp = serializedExpressions.FindProperty("blendShapeProxy");
+            if (blendShapeProxyProp != null && blendShapeProxy != null)
+            {
+                blendShapeProxyProp.objectReferenceValue = blendShapeProxy;
+            }
+            
+            serializedExpressions.ApplyModifiedProperties();
+            Debug.Log("Configured VRMFacialExpressions component");
+        }
+    }
+    
+    /// <summary>
+    /// Sets up the avatar controller to work with VRM components
+    /// </summary>
+    private void SetupAvatarController()
+    {
+        // Find or create AvatarController
+        if (avatarController == null)
+        {
+            avatarController = vrmAvatarRoot.GetComponent<AvatarController>();
+            
+            if (avatarController == null && createMissingComponents)
+            {
+                avatarController = vrmAvatarRoot.AddComponent<AvatarController>();
+                Debug.Log("Added AvatarController to VRM avatar");
+            }
+        }
+        
+        // Configure the avatar controller
+        if (avatarController != null)
+        {
+            // Use SerializedObject for more reliable property setting
+            SerializedObject serializedController = new SerializedObject(avatarController);
+            
+            SerializedProperty animatorProp = serializedController.FindProperty("animator");
+            if (animatorProp != null && animator != null)
+            {
+                animatorProp.objectReferenceValue = animator;
+            }
+            
+            // We need to be careful with the lip sync and facial expressions
+            // The standard AvatarController expects the original component types
+            
+            // Create a VRMAvatarAdapter if needed
+            VRMAvatarAdapter adapter = vrmAvatarRoot.GetComponent<VRMAvatarAdapter>();
+            if (adapter == null && createMissingComponents)
+            {
+                adapter = vrmAvatarRoot.AddComponent<VRMAvatarAdapter>();
+                
+                // Configure the adapter
+                SerializedObject serializedAdapter = new SerializedObject(adapter);
+                
+                SerializedProperty controllerProp = serializedAdapter.FindProperty("avatarController");
+                if (controllerProp != null)
+                {
+                    controllerProp.objectReferenceValue = avatarController;
+                }
+                
+                SerializedProperty vrmRootProp = serializedAdapter.FindProperty("vrmAvatarRoot");
+                if (vrmRootProp != null)
+                {
+                    vrmRootProp.objectReferenceValue = vrmAvatarRoot;
+                }
+                
+                serializedAdapter.ApplyModifiedProperties();
+                Debug.Log("Added and configured VRMAvatarAdapter component");
+            }
+            
+            serializedController.ApplyModifiedProperties();
+            Debug.Log("Configured AvatarController component");
+        }
+    }
+}

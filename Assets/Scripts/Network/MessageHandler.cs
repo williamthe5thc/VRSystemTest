@@ -223,6 +223,13 @@ public class MessageHandler : MonoBehaviour
                 
                 case "PROCESSING":
                     avatarController.SetThinkingState();
+                    
+                    // Set 'thinking' message if no response is showing
+                    if (uiManager != null && string.IsNullOrEmpty(_currentLLMResponse))
+                    {
+                        Debug.Log("Set 'thinking' message due to PROCESSING state");
+                        uiManager.ShowLLMThinking();
+                    }
                     break;
                 
                 case "RESPONDING":
@@ -230,7 +237,16 @@ public class MessageHandler : MonoBehaviour
                     break;
                 
                 case "WAITING":
-                    avatarController.SetAttentiveState();
+                    // Only transition to attentive state if we're not in the middle of playback
+                    if (!audioPlayback || !audioPlayback.IsPlaying)
+                    {
+                        avatarController.SetAttentiveState();
+                        Debug.Log("Set attentive state in WAITING because audio is not playing");
+                    }
+                    else
+                    {
+                        Debug.Log("Remained in speaking state despite WAITING because audio is still playing");
+                    }
                     break;
                 
                 case "ERROR":

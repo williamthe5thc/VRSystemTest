@@ -2,6 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor.Animations;
+#endif
 
 /// <summary>
 /// Handles avatar gestures and animations.
@@ -42,7 +45,55 @@ public class GestureSystem : MonoBehaviour
             
             if (animator == null)
             {
-                Debug.LogError("Animator not found for GestureSystem!");
+                Debug.LogWarning("Animator not found for GestureSystem - adding a dummy animator.");
+                
+                // Add an Animator component to this GameObject
+                animator = gameObject.AddComponent<Animator>();
+                
+                // Set up basic parameters to avoid errors
+                // Create a simple runtime animation controller
+                // This approach works in both editor and build
+                var runtimeController = new AnimatorOverrideController();
+                RuntimeAnimatorController baseController = null;
+                
+                // Try to find any existing controller in the project to use as a base
+                var existingControllers = Resources.FindObjectsOfTypeAll<RuntimeAnimatorController>();
+                if (existingControllers != null && existingControllers.Length > 0)
+                {
+                    baseController = existingControllers[0];
+                }
+                
+                // If we found a base controller, use it for the override
+                if (baseController != null)
+                {
+                    runtimeController.runtimeAnimatorController = baseController;
+                    animator.runtimeAnimatorController = runtimeController;
+                    
+                    Debug.Log("Using base controller: " + baseController.name);
+                }
+                else
+                {
+                    Debug.LogWarning("No base controller found for animation overrides");
+                    
+                    // Without a base controller, we'll just create a dummy controller
+                    // with no actual animations but valid parameters to prevent errors
+                    #if UNITY_EDITOR
+                    // Editor-only: Create a new AnimatorController (only works in editor)
+                    var newController = new AnimatorController();
+                    newController.name = "DummyController";
+                    
+                    // Add parameters for our gesture triggers
+                    foreach (string gestureName in gestureAnimationTriggers)
+                    {
+                        newController.AddParameter(gestureName, AnimatorControllerParameterType.Trigger);
+                    }
+                    
+                    // Assign the controller
+                    animator.runtimeAnimatorController = newController;
+                    #endif
+                }
+                
+                Debug.Log("Added dummy Animator for GestureSystem");
             }
         }
         

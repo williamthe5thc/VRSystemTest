@@ -226,6 +226,18 @@ public class UIManager : MonoBehaviour
                 llmResponseText.text = $"Interviewer: {text}";
         }
     }
+    
+    /// <summary>
+    /// Shows the "Interviewer is thinking..." message in the LLM response area
+    /// </summary>
+    public void ShowLLMThinking()
+    {
+        if (transcriptPanel != null && !transcriptPanel.activeSelf)
+            transcriptPanel.SetActive(true);
+        
+        if (llmResponseText != null)
+            llmResponseText.text = "Interviewer is thinking...";
+    }
 
     /// <summary>
     /// Clears the transcript and sets to thinking state

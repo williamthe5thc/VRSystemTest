@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 public class SceneInitializer : MonoBehaviour
 {
     [Header("Scene Settings")]
-    [SerializeField] private string mainMenuScene = "MainMenu";
+    [SerializeField] private string mainMenuScene = "Scenes/MainMenu";
     [SerializeField] private float initializationDelay = 0.5f;
     [SerializeField] private bool showLoadingScreen = true;
     
@@ -33,6 +33,13 @@ public class SceneInitializer : MonoBehaviour
         }
         
         _instance = this;
+        
+        // Fix: Make the GameObject a root object before using DontDestroyOnLoad
+        if (transform.parent != null)
+        {
+            transform.SetParent(null);
+        }
+        
         DontDestroyOnLoad(gameObject);
         
         // Initialize persistent systems

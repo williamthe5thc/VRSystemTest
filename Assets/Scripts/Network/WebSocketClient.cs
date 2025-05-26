@@ -9,7 +9,7 @@ using System.Text;
 /// <summary>
 /// Handles WebSocket communication with the interview server.
 /// </summary>
-public class WebSocketClient : MonoBehaviour
+public class WebSocketClient : MonoBehaviour, IDisposable
 {
     [SerializeField] private string serverUrl = "ws://192.168.68.100:8765";
     [SerializeField] private bool autoConnect = true;
@@ -67,6 +67,12 @@ private void LogDebug(string message)
     UpdateDebugText(message);
 }
 
+private void LogWarning(string message)
+{
+    Debug.LogWarning(message);
+    UpdateDebugText($"WARNING: {message}");
+}
+
 private void LogError(string message)
 {
     Debug.LogError(message);
@@ -104,32 +110,48 @@ private void LogError(string message)
     /// <param name="sessionId">The current session ID.</param>
     public async Task SendAudioData(byte[] audioData, string sessionId)
     {
+        // Check for disposed state or null data
+        if (_isDisposed || audioData == null)
+        {
+            LogError("Cannot send audio: WebSocketClient is disposed or audio data is null.");
+            return;
+        }
+        
+        // Check connection
         if (!IsConnected)
         {
-            Debug.LogWarning("Cannot send audio: WebSocket not connected");
+            LogWarning("Cannot send audio: WebSocket not connected");
             await Connect();
             
             // If still not connected, abort
             if (!IsConnected)
             {
-                Debug.LogError("Failed to connect to server. Audio not sent.");
+                LogError("Failed to connect to server. Audio not sent.");
                 return;
             }
         }
         
         try
         {
-            // Create audio data message
+            // Create audio data message with necessary fields
             var audioMessage = new AudioDataMessage
             {
-                type = "audio_data",
+                type = "audio_data", // Ensure type field is explicitly set
                 session_id = sessionId,
                 data = Convert.ToBase64String(audioData),
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0
             };
             
-            // Convert to JSON and send
+            // Convert to JSON
             string jsonMessage = JsonUtility.ToJson(audioMessage);
+            
+            // Validate before sending
+            if (!ValidateMessage(jsonMessage))
+            {
+                throw new InvalidOperationException("Invalid audio message format. Message not sent.");
+            }
+            
+            // Send message
             await _websocket.SendText(jsonMessage);
         }
         catch (Exception ex)
@@ -144,6 +166,13 @@ private void LogError(string message)
     /// </summary>
     public async Task Connect()
     {
+        // Check if disposed
+        if (_isDisposed)
+        {
+            LogError("Cannot connect: WebSocketClient is disposed.");
+            return;
+        }
+        
         // Skip if already connected or connecting
         if (_websocket != null && 
             (_websocket.State == WebSocketState.Open || 
@@ -166,23 +195,33 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
             
             // Set up event handlers
             _websocket.OnOpen += () => {
-                Debug.Log("WebSocket connection opened");
+                if (_isDisposed) return;
+                
+                LogDebug("WebSocket connection opened");
                 _isReconnecting = false;
                 OnConnected?.Invoke();
                 OnConnectionEstablished?.Invoke();
             };
             
             _websocket.OnMessage += (bytes) => {
-                string message = Encoding.UTF8.GetString(bytes);
-                OnMessageReceived?.Invoke(message);
-                MessageReceived?.Invoke(message);
+                if (_isDisposed) return;
+                
+                try {
+                    string message = Encoding.UTF8.GetString(bytes);
+                    OnMessageReceived?.Invoke(message);
+                    MessageReceived?.Invoke(message);
+                } catch (Exception ex) {
+                    LogError($"Error processing message: {ex.Message}");
+                }
             };
             
             _websocket.OnClose += (closeCode) => {
-                Debug.Log($"WebSocket connection closed: {closeCode}");
+                if (_isDisposed) return;
+                
+                LogDebug($"WebSocket connection closed: {closeCode}");
                 OnDisconnected?.Invoke(closeCode);
                 
-                if (reconnectOnDisconnect && !_isReconnecting)
+                if (reconnectOnDisconnect && !_isReconnecting && !_isDisposed)
                 {
                     _isReconnecting = true;
                     _reconnectTimer = reconnectDelay;
@@ -190,7 +229,9 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
             };
             
             _websocket.OnError += (errorMsg) => {
-                Debug.LogError($"WebSocket error: {errorMsg}");
+                if (_isDisposed) return;
+                
+                LogError($"WebSocket error: {errorMsg}");
                 OnError?.Invoke(errorMsg);
             };
             
@@ -211,17 +252,77 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
     }
     
     /// <summary>
+    /// Validates that a message contains the required fields before sending.
+    /// </summary>
+    /// <param name="jsonMessage">The JSON message to validate.</param>
+    /// <returns>True if the message is valid, false otherwise.</returns>
+    private bool ValidateMessage(string jsonMessage)
+    {
+        try
+        {
+            // Basic validation - check if it's valid JSON
+            if (string.IsNullOrEmpty(jsonMessage) || !jsonMessage.StartsWith("{" ))
+            {
+                LogError("Invalid JSON message format");
+                return false;
+            }
+            
+            // Check for 'type' field using string contains - more reliable than JsonUtility
+            if (!jsonMessage.Contains("\"type\":") && !jsonMessage.Contains("'type':"))
+            {
+                LogWarning("Message missing required 'type' field - adding default type");
+                
+                // Add a default type field if missing
+                if (jsonMessage.StartsWith("{" ))
+                {
+                    // Insert right after the opening brace
+                    string fixedMessage = jsonMessage.Insert(1, "\"type\":\"default_message\",");
+                    
+                    // Replace the original message (this works because we're passing by reference)
+                    jsonMessage = fixedMessage;
+                    
+                    LogDebug("Added default type field to message");
+                    return true;
+                }
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogError($"Error validating message: {ex.Message}");
+            return false;
+        }
+    }
+    
+    /// <summary>
     /// Sends a text message to the server with auto-queueing when disconnected.
     /// </summary>
     /// <param name="message">The message to send.</param>
     /// <param name="allowQueue">Whether to allow queueing if disconnected</param>
     public new async Task<bool> SendMessage(string message, bool allowQueue = true)
     {
+        if (_isDisposed)
+        {
+            LogError("Cannot send message: WebSocketClient is disposed");
+            return false;
+        }
+        
         // Update activity timestamp in SessionManager
         var sessionManager = FindObjectOfType<SessionManager>();
         if (sessionManager != null)
         {
             sessionManager.UpdateActivityTimestamp();
+        }
+        
+        // Make a copy of the message to avoid modifying the original 
+        string validatedMessage = message;
+        
+        // Validate and potentially fix message format
+        if (!ValidateMessage(validatedMessage))
+        {
+            LogError("Cannot send message: Invalid message format");
+            return false;
         }
         
         if (!IsConnected)
@@ -231,7 +332,7 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
             if (allowQueue)
             {
                 // Queue message for later delivery
-                QueueMessage(message);
+                QueueMessage(validatedMessage);
                 
                 // Try to reconnect
                 _ = Connect();
@@ -247,7 +348,7 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
         
         try
         {
-            await _websocket.SendText(message);
+            await _websocket.SendText(validatedMessage);
             return true;
         }
         catch (Exception ex)
@@ -258,7 +359,7 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
             if (allowQueue)
             {
                 // Queue message for retry
-                QueueMessage(message);
+                QueueMessage(validatedMessage);
                 LogDebug("Message queued for retry after send error");
             }
             
@@ -284,10 +385,10 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
         
         try
         {
-            // Create audio data message
+            // Create audio data message with necessary fields
             var audioMessage = new AudioDataMessage
             {
-                type = "audio_data",
+                type = "audio_data", // Ensure type field is explicitly set
                 session_id = sessionId,
                 data = Convert.ToBase64String(audioData),
                 timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0
@@ -295,6 +396,15 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
             
             // Convert to JSON
             string jsonMessage = JsonUtility.ToJson(audioMessage);
+            
+            // Validate before sending
+            if (!ValidateMessage(jsonMessage))
+            {
+                string errorMsg = "Invalid audio message format. Message not sent.";
+                LogError(errorMsg);
+                onError?.Invoke(errorMsg);
+                return;
+            }
             
             // Start a coroutine to send the data
             if (Application.isPlaying)
@@ -448,6 +558,10 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
     
     private void Update()
     {
+        // Skip if disposed
+        if (_isDisposed)
+            return;
+            
         // Handle WebSocket message queue
         if (_websocket != null)
         {
@@ -455,10 +569,10 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
                 _websocket.DispatchMessageQueue();
             }
             catch (Exception ex) {
-                Debug.LogError($"Error dispatching WebSocket messages: {ex.Message}");
+                LogError($"Error dispatching WebSocket messages: {ex.Message}");
                 
                 // If error occurs during dispatch, initiate reconnect
-                if (reconnectOnDisconnect && !_isReconnecting) 
+                if (reconnectOnDisconnect && !_isReconnecting && !_isDisposed) 
                 {
                     LogDebug("Error during message dispatch, initiating reconnect");
                     _isReconnecting = true;
@@ -468,7 +582,7 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
         }
         
         // Handle reconnection logic with improved state logging
-        if (_isReconnecting)
+        if (_isReconnecting && !_isDisposed)
         {
             _reconnectTimer -= Time.deltaTime;
             
@@ -483,22 +597,38 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
                 // Only continue reconnecting up to max attempts
                 if (_reconnectAttempts <= maxReconnectAttempts)
                 {
-                    Connect().ContinueWith(task => {
-                        if (task.IsFaulted && task.Exception != null)
-                        {
-                            LogError($"Reconnection attempt failed: {task.Exception.InnerException?.Message ?? "Unknown error"}");
+                    try {
+                        Connect().ContinueWith(task => {
+                            if (_isDisposed) return;
                             
-                            // Schedule another attempt with exponential backoff
+                            if (task.IsFaulted && task.Exception != null)
+                            {
+                                LogError($"Reconnection attempt failed: {task.Exception.InnerException?.Message ?? "Unknown error"}");
+                                
+                                // Schedule another attempt with exponential backoff
+                                if (!_isDisposed)
+                                {
+                                    _isReconnecting = true;
+                                    _reconnectTimer = reconnectDelay * Mathf.Pow(1.5f, _reconnectAttempts);
+                                }
+                            }
+                        });
+                    }
+                    catch (Exception ex) {
+                        LogError($"Error scheduling reconnection: {ex.Message}");
+                        if (!_isDisposed) {
                             _isReconnecting = true;
-                            _reconnectTimer = reconnectDelay * Mathf.Pow(1.5f, _reconnectAttempts);
+                            _reconnectTimer = reconnectDelay;
                         }
-                    });
+                    }
                 }
                 else
                 {
                     LogError($"Maximum reconnection attempts ({maxReconnectAttempts}) reached");
-                    OnError?.Invoke("Maximum reconnection attempts reached");
-                    _reconnectAttempts = 0; // Reset for future reconnection cycles
+                    if (!_isDisposed) {
+                        OnError?.Invoke("Maximum reconnection attempts reached");
+                        _reconnectAttempts = 0; // Reset for future reconnection cycles
+                    }
                 }
             }
         }
@@ -510,14 +640,66 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
         }
     }
     
-    private async void OnApplicationQuit()
+    private void OnApplicationQuit()
     {
-        await Close();
+        try
+        {
+            // Minimal synchronous cleanup
+            if (_websocket != null && _websocket.State == WebSocketState.Open)
+            {
+                #pragma warning disable CS4014
+                _websocket.Close();
+                #pragma warning restore CS4014
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Error in OnApplicationQuit: {ex.Message}");
+        }
     }
     
-    private async void OnDestroy()
+    private void OnDestroy()
     {
-        await Close();
+        Dispose();
+    }
+    
+    private IEnumerator SafeCleanup()
+    {
+        // Track if we're in a cleanup process
+        bool cleanupStarted = false;
+        Task closeTask = null;
+        
+        // Step 1: Try to initiate the close operation (no yielding here)
+        try
+        {
+            if (_websocket != null && _websocket.State == WebSocketState.Open)
+            {
+                // Attempt to close cleanly
+                cleanupStarted = true;
+                closeTask = _websocket.Close();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogError($"Error during WebSocket cleanup: {ex.Message}");
+            // We'll continue with other cleanup even if this fails
+        }
+        
+        // Step 2: Wait for completion (yielding outside try-catch)
+        if (closeTask != null)
+        {
+            float timeout = 1.0f;
+            float elapsed = 0f;
+            
+            while (!closeTask.IsCompleted && elapsed < timeout)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;  // This is now outside any try-catch
+            }
+        }
+        
+        // Ensure references are cleared
+        _websocket = null;
     }
     
     /// <summary>
@@ -539,5 +721,60 @@ LogDebug($"Connecting to WebSocket server: {serverUrl}");
     {
         public string Content;
         public DateTime Timestamp;
+    }
+    
+    private bool _isDisposed = false;
+    
+    /// <summary>
+    /// Disposes of the WebSocketClient and cleans up resources.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        
+        // Check if dependent objects still exist before starting cleanup
+        if (gameObject != null && gameObject.activeInHierarchy)
+        {
+            try
+            {
+                StartCoroutine(SafeCleanup());
+            }
+            catch (Exception)
+            {
+                // Fallback to direct cleanup if coroutine fails
+                PerformMinimalCleanup();
+            }
+        }
+        else
+        {
+            PerformMinimalCleanup();
+        }
+        
+        _isDisposed = true;
+    }
+    
+    /// <summary>
+    /// Performs minimal cleanup without dependencies on other components.
+    /// </summary>
+    private void PerformMinimalCleanup()
+    {
+        LogDebug("Performing minimal WebSocket cleanup due to shutdown order");
+        try
+        {
+            if (_websocket != null && _websocket.State == WebSocketState.Open)
+            {
+                // Use a fire-and-forget approach for shutdown
+                #pragma warning disable CS4014
+                _websocket.Close();
+                #pragma warning restore CS4014
+            }
+            
+            // Clear references
+            _websocket = null;
+        }
+        catch (Exception ex)
+        {
+            LogError($"Error during minimal WebSocket cleanup: {ex.Message}");
+        }
     }
 }

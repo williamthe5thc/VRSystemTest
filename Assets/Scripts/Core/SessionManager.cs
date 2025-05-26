@@ -428,11 +428,20 @@ public class SessionManager : MonoBehaviour
             // Create capabilities object
             ClientCapabilities capabilities = new ClientCapabilities();
             
-            // Create message
+            // Create message (constructor ensures type field is set)
             ClientCapabilitiesMessage message = new ClientCapabilitiesMessage(_sessionId, capabilities);
             
-            // Convert to JSON
-            string jsonMessage = JsonUtility.ToJson(message);
+            // Convert to JSON using Newtonsoft.Json which handles serialization better
+            string jsonMessage = JsonConvert.SerializeObject(message);
+            
+            // Verify the message has a type field
+            if (!jsonMessage.Contains("\"type\":"))
+            {
+                Debug.LogWarning("Client capabilities missing type field - adding manually");
+                // Fix by manually inserting right after the opening brace
+                jsonMessage = jsonMessage.Insert(1, "\"type\":\"client_capabilities\",");
+            }
+            
             await webSocketClient.SendMessage(jsonMessage);
             
             Debug.Log("Sent client capabilities to server");

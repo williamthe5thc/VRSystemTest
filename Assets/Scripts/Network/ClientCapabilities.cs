@@ -89,15 +89,15 @@ namespace VRInterview.Network
 
         public ClientCapabilitiesMessage(string sessionId, ClientCapabilities capabilities)
         {
-        this.type = "client_capabilities";
-        this.session_id = sessionId;
-        this.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
+            this.type = "client_capabilities";  // Ensure this field is explicitly set
+            this.session_id = sessionId;
+            this.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
             this.capabilities = capabilities;
         
-        // Log debug information
-        Debug.Log($"Created client capabilities message with session_id: {sessionId}");
-        Debug.Log($"Capabilities: streaming={capabilities.supports_streaming}, formats={string.Join(",", capabilities.audio_formats)}");
-    }
+            // Log debug information
+            Debug.Log($"Created client capabilities message with session_id: {sessionId}");
+            Debug.Log($"Capabilities: streaming={capabilities.supports_streaming}, formats={string.Join(",", capabilities.audio_formats)}");
+        }
     }
 
     /// <summary>

@@ -233,28 +233,28 @@ public class EnvironmentCreatorTool : EditorWindow
         // Set up NetworkManager children
         GameObject webSocketClient = new GameObject("WebSocketClient");
         GameObject messageHandler = new GameObject("MessageHandler");
-        webSocketClient.transform.parent = networkManager.transform;
-        messageHandler.transform.parent = networkManager.transform;
+        webSocketClient.transform.SetParent(networkManager.transform, false);
+        messageHandler.transform.SetParent(networkManager.transform, false);
         
         // Set up AudioManager children
         GameObject microphoneCapture = new GameObject("MicrophoneCapture");
         GameObject audioPlayback = new GameObject("AudioPlayback");
-        microphoneCapture.transform.parent = audioManager.transform;
-        audioPlayback.transform.parent = audioManager.transform;
+        microphoneCapture.transform.SetParent(audioManager.transform, false);
+        audioPlayback.transform.SetParent(audioManager.transform, false);
         
         // Set up XRRig children
         GameObject cameraOffset = new GameObject("Camera Offset");
-        cameraOffset.transform.parent = xrRig.transform;
+        cameraOffset.transform.SetParent(xrRig.transform, false);
         
         GameObject mainCamera = new GameObject("Main Camera");
         mainCamera.AddComponent<Camera>();
         mainCamera.tag = "MainCamera";
-        mainCamera.transform.parent = cameraOffset.transform;
+        mainCamera.transform.SetParent(cameraOffset.transform, false);
         
         GameObject leftController = new GameObject("LeftHand Controller");
         GameObject rightController = new GameObject("RightHand Controller");
-        leftController.transform.parent = xrRig.transform;
-        rightController.transform.parent = xrRig.transform;
+        leftController.transform.SetParent(xrRig.transform, false);
+        rightController.transform.SetParent(xrRig.transform, false);
         
         // Set up Environment children
         GameObject environmentManager = new GameObject("EnvironmentManager");
@@ -263,11 +263,11 @@ public class EnvironmentCreatorTool : EditorWindow
         GameObject props = new GameObject("Props");
         GameObject lightingControl = new GameObject("LightingControl");
         
-        environmentManager.transform.parent = environment.transform;
-        office.transform.parent = environment.transform;
-        furniture.transform.parent = environment.transform;
-        props.transform.parent = environment.transform;
-        lightingControl.transform.parent = environment.transform;
+        environmentManager.transform.SetParent(environment.transform, false);
+        office.transform.SetParent(environment.transform, false);
+        furniture.transform.SetParent(environment.transform, false);
+        props.transform.SetParent(environment.transform, false);
+        lightingControl.transform.SetParent(environment.transform, false);
         
         // Set up Avatar children
         GameObject avatarController = new GameObject("AvatarController");
@@ -276,11 +276,11 @@ public class EnvironmentCreatorTool : EditorWindow
         GameObject facialExpressions = new GameObject("FacialExpressions");
         GameObject gestureSystem = new GameObject("GestureSystem");
         
-        avatarController.transform.parent = avatar.transform;
-        model.transform.parent = avatar.transform;
-        lipSync.transform.parent = avatar.transform;
-        facialExpressions.transform.parent = avatar.transform;
-        gestureSystem.transform.parent = avatar.transform;
+        avatarController.transform.SetParent(avatar.transform, false);
+        model.transform.SetParent(avatar.transform, false);
+        lipSync.transform.SetParent(avatar.transform, false);
+        facialExpressions.transform.SetParent(avatar.transform, false);
+        gestureSystem.transform.SetParent(avatar.transform, false);
         
         // Set up UI children
         GameObject mainCanvas = new GameObject("MainCanvas");
@@ -298,9 +298,9 @@ public class EnvironmentCreatorTool : EditorWindow
         connectionStatusCanvas.AddComponent<UnityEngine.UI.CanvasScaler>();
         connectionStatusCanvas.AddComponent<UnityEngine.UI.GraphicRaycaster>();
         
-        mainCanvas.transform.parent = ui.transform;
-        vrMenuCanvas.transform.parent = ui.transform;
-        connectionStatusCanvas.transform.parent = ui.transform;
+        mainCanvas.transform.SetParent(ui.transform, false);
+        vrMenuCanvas.transform.SetParent(ui.transform, false);
+        connectionStatusCanvas.transform.SetParent(ui.transform, false);
         
         // Add necessary components based on the SCENE_SETUP.md information
         // Note: You may need to modify these if your component requirements are different
@@ -538,61 +538,66 @@ public class EnvironmentCreatorTool : EditorWindow
         // Create floor
         GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
         floor.name = "Floor";
-        floor.transform.parent = parent.transform;
+        floor.transform.SetParent(parent.transform, false);
         floor.transform.localPosition = new Vector3(0, -size.y/2, 0);
         floor.transform.localScale = new Vector3(size.x, 0.1f, size.z);
         
         Renderer floorRenderer = floor.GetComponent<Renderer>();
         if (floorRenderer != null)
         {
-            floorRenderer.material = new Material(Shader.Find("Standard"));
-            floorRenderer.material.color = floorColor;
+            Material floorMaterial = new Material(Shader.Find("Standard"));
+            floorMaterial.color = floorColor;
+            floorRenderer.sharedMaterial = floorMaterial;
         }
         
         // Create ceiling
         GameObject ceiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ceiling.name = "Ceiling";
-        ceiling.transform.parent = parent.transform;
+        ceiling.transform.SetParent(parent.transform, false);
         ceiling.transform.localPosition = new Vector3(0, size.y/2, 0);
         ceiling.transform.localScale = new Vector3(size.x, 0.1f, size.z);
         
         Renderer ceilingRenderer = ceiling.GetComponent<Renderer>();
         if (ceilingRenderer != null)
         {
-            ceilingRenderer.material = new Material(Shader.Find("Standard"));
-            ceilingRenderer.material.color = Color.white;
+            Material ceilingMaterial = new Material(Shader.Find("Standard"));
+            ceilingMaterial.color = Color.white;
+            ceilingRenderer.sharedMaterial = ceilingMaterial;
         }
         
         // Create walls
         // Back wall
         GameObject backWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
         backWall.name = "BackWall";
-        backWall.transform.parent = parent.transform;
+        backWall.transform.SetParent(parent.transform, false);
         backWall.transform.localPosition = new Vector3(0, 0, -size.z/2);
         backWall.transform.localScale = new Vector3(size.x, size.y, 0.1f);
         
         // Front wall
         GameObject frontWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
         frontWall.name = "FrontWall";
-        frontWall.transform.parent = parent.transform;
+        frontWall.transform.SetParent(parent.transform, false);
         frontWall.transform.localPosition = new Vector3(0, 0, size.z/2);
         frontWall.transform.localScale = new Vector3(size.x, size.y, 0.1f);
         
         // Left wall
         GameObject leftWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
         leftWall.name = "LeftWall";
-        leftWall.transform.parent = parent.transform;
+        leftWall.transform.SetParent(parent.transform, false);
         leftWall.transform.localPosition = new Vector3(-size.x/2, 0, 0);
         leftWall.transform.localScale = new Vector3(0.1f, size.y, size.z);
         
         // Right wall
         GameObject rightWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
         rightWall.name = "RightWall";
-        rightWall.transform.parent = parent.transform;
+        rightWall.transform.SetParent(parent.transform, false);
         rightWall.transform.localPosition = new Vector3(size.x/2, 0, 0);
         rightWall.transform.localScale = new Vector3(0.1f, size.y, size.z);
         
         // Set wall materials
+        Material wallMaterial = new Material(Shader.Find("Standard"));
+        wallMaterial.color = wallColor;
+        
         Renderer[] wallRenderers = new Renderer[] {
             backWall.GetComponent<Renderer>(),
             frontWall.GetComponent<Renderer>(),
@@ -604,25 +609,25 @@ public class EnvironmentCreatorTool : EditorWindow
         {
             if (renderer != null)
             {
-                renderer.material = new Material(Shader.Find("Standard"));
-                renderer.material.color = wallColor;
+                renderer.sharedMaterial = wallMaterial;
             }
         }
         
         // Add a window to the back wall
         GameObject window = GameObject.CreatePrimitive(PrimitiveType.Cube);
         window.name = "Window";
-        window.transform.parent = backWall.transform;
+        window.transform.SetParent(backWall.transform, false);
         window.transform.localPosition = new Vector3(0, 0.3f, -0.1f);
         window.transform.localScale = new Vector3(0.4f, 0.4f, 0.3f);
         
         Renderer windowRenderer = window.GetComponent<Renderer>();
         if (windowRenderer != null)
         {
-            windowRenderer.material = new Material(Shader.Find("Standard"));
-            windowRenderer.material.color = new Color(0.7f, 0.9f, 1.0f, 0.5f);
-            windowRenderer.material.EnableKeyword("_ALPHABLEND_ON");
-            windowRenderer.material.renderQueue = 3000;
+            Material windowMaterial = new Material(Shader.Find("Standard"));
+            windowMaterial.color = new Color(0.7f, 0.9f, 1.0f, 0.5f);
+            windowMaterial.EnableKeyword("_ALPHABLEND_ON");
+            windowMaterial.renderQueue = 3000;
+            windowRenderer.sharedMaterial = windowMaterial;
         }
     }
 
@@ -656,51 +661,53 @@ public class EnvironmentCreatorTool : EditorWindow
         {
             GameObject desk = Instantiate(deskPrefab, parent.transform);
             desk.name = "ExecutiveDesk";
-            desk.transform.localPosition = new Vector3(0, -1.4f, -2);
+            desk.transform.localPosition = new Vector3(0, 0.0f, -2);
             
             GameObject chair1 = Instantiate(chairPrefab, parent.transform);
             chair1.name = "ExecutiveChair";
-            chair1.transform.localPosition = new Vector3(0, -1.4f, -3);
+            chair1.transform.localPosition = new Vector3(0, 0.0f, -3);
             
             GameObject chair2 = Instantiate(chairPrefab, parent.transform);
             chair2.name = "GuestChair";
-            chair2.transform.localPosition = new Vector3(0, -1.4f, -1);
+            chair2.transform.localPosition = new Vector3(0, 0.0f, -1);
             chair2.transform.localRotation = Quaternion.Euler(0, 180, 0);
         }
         else
         {
             // Create simple primitive furniture if prefabs don't exist
-            CreatePrimitiveDesk(parent, new Vector3(0, -1.4f, -2), new Vector3(1.5f, 0.05f, 0.8f), corporateAccentColor);
-            CreatePrimitiveChair(parent, new Vector3(0, -1.4f, -3), corporateAccentColor);
-            CreatePrimitiveChair(parent, new Vector3(0, -1.4f, -1), corporateAccentColor, true);
+            CreatePrimitiveDesk(parent, new Vector3(0, 0.0f, -2), new Vector3(1.5f, 0.05f, 0.8f), corporateAccentColor);
+            CreatePrimitiveChair(parent, new Vector3(0, 0.0f, -3), corporateAccentColor);
+            CreatePrimitiveChair(parent, new Vector3(0, 0.0f, -1), corporateAccentColor, true);
         }
         
         // Add bookshelf
         GameObject bookshelf = GameObject.CreatePrimitive(PrimitiveType.Cube);
         bookshelf.name = "Bookshelf";
-        bookshelf.transform.parent = parent.transform;
-        bookshelf.transform.localPosition = new Vector3(-3, -0.5f, -2);
+        bookshelf.transform.SetParent(parent.transform, false);
+        bookshelf.transform.localPosition = new Vector3(-3, 0.5f, -2);
         bookshelf.transform.localScale = new Vector3(0.5f, 2, 1.5f);
         
         Renderer bookshelfRenderer = bookshelf.GetComponent<Renderer>();
         if (bookshelfRenderer != null)
         {
-            bookshelfRenderer.material = new Material(Shader.Find("Standard"));
-            bookshelfRenderer.material.color = new Color(0.3f, 0.2f, 0.1f);
+            Material bookshelfMaterial = new Material(Shader.Find("Standard"));
+            bookshelfMaterial.color = new Color(0.3f, 0.2f, 0.1f);
+            bookshelfRenderer.sharedMaterial = bookshelfMaterial;
         }
         
         // Add plant
         GameObject plant = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         plant.name = "Plant";
-        plant.transform.parent = parent.transform;
-        plant.transform.localPosition = new Vector3(3, -1, -3);
+        plant.transform.SetParent(parent.transform, false);
+        plant.transform.localPosition = new Vector3(3, 0.5f, -3);
         plant.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
         
         Renderer plantRenderer = plant.GetComponent<Renderer>();
         if (plantRenderer != null)
         {
-            plantRenderer.material = new Material(Shader.Find("Standard"));
-            plantRenderer.material.color = new Color(0.1f, 0.5f, 0.1f);
+            Material plantMaterial = new Material(Shader.Find("Standard"));
+            plantMaterial.color = new Color(0.1f, 0.5f, 0.1f);
+            plantRenderer.sharedMaterial = plantMaterial;
         }
     }
 
@@ -715,29 +722,29 @@ public class EnvironmentCreatorTool : EditorWindow
         {
             GameObject desk = Instantiate(deskPrefab, parent.transform);
             desk.name = "ModernDesk";
-            desk.transform.localPosition = new Vector3(0, -1.4f, -2);
+            desk.transform.localPosition = new Vector3(0, 0.0f, -2);
             
             GameObject chair1 = Instantiate(chairPrefab, parent.transform);
             chair1.name = "ModernChair1";
-            chair1.transform.localPosition = new Vector3(-0.5f, -1.4f, -3);
+            chair1.transform.localPosition = new Vector3(-0.5f, 0.0f, -3);
             
             GameObject chair2 = Instantiate(chairPrefab, parent.transform);
             chair2.name = "ModernChair2";
-            chair2.transform.localPosition = new Vector3(0.5f, -1.4f, -1);
+            chair2.transform.localPosition = new Vector3(0.5f, 0.0f, -1);
             chair2.transform.localRotation = Quaternion.Euler(0, 180, 0);
         }
         else
         {
             // Create simple primitive furniture if prefabs don't exist
-            CreatePrimitiveDesk(parent, new Vector3(0, -1.4f, -2), new Vector3(1.2f, 0.03f, 0.6f), startupAccentColor);
-            CreatePrimitiveChair(parent, new Vector3(-0.5f, -1.4f, -3), startupAccentColor);
-            CreatePrimitiveChair(parent, new Vector3(0.5f, -1.4f, -1), startupAccentColor, true);
+            CreatePrimitiveDesk(parent, new Vector3(0, 0.0f, -2), new Vector3(1.2f, 0.03f, 0.6f), startupAccentColor);
+            CreatePrimitiveChair(parent, new Vector3(-0.5f, 0.0f, -3), startupAccentColor);
+            CreatePrimitiveChair(parent, new Vector3(0.5f, 0.0f, -1), startupAccentColor, true);
         }
         
         // Add whiteboard
         GameObject whiteboard = GameObject.CreatePrimitive(PrimitiveType.Cube);
         whiteboard.name = "Whiteboard";
-        whiteboard.transform.parent = parent.transform;
+        whiteboard.transform.SetParent(parent.transform, false);
         whiteboard.transform.localPosition = new Vector3(-2, 0, -1);
         whiteboard.transform.localScale = new Vector3(0.05f, 1.2f, 1.8f);
         whiteboard.transform.localRotation = Quaternion.Euler(0, 90, 0);
@@ -745,22 +752,24 @@ public class EnvironmentCreatorTool : EditorWindow
         Renderer whiteboardRenderer = whiteboard.GetComponent<Renderer>();
         if (whiteboardRenderer != null)
         {
-            whiteboardRenderer.material = new Material(Shader.Find("Standard"));
-            whiteboardRenderer.material.color = Color.white;
+            Material whiteboardMaterial = new Material(Shader.Find("Standard"));
+            whiteboardMaterial.color = Color.white;
+            whiteboardRenderer.sharedMaterial = whiteboardMaterial;
         }
         
         // Add beanbag
         GameObject beanbag = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         beanbag.name = "Beanbag";
-        beanbag.transform.parent = parent.transform;
-        beanbag.transform.localPosition = new Vector3(2, -1.25f, -1);
+        beanbag.transform.SetParent(parent.transform, false);
+        beanbag.transform.localPosition = new Vector3(2, 0.25f, -1);
         beanbag.transform.localScale = new Vector3(0.8f, 0.4f, 0.8f);
         
         Renderer beanbagRenderer = beanbag.GetComponent<Renderer>();
         if (beanbagRenderer != null)
         {
-            beanbagRenderer.material = new Material(Shader.Find("Standard"));
-            beanbagRenderer.material.color = startupAccentColor;
+            Material beanbagMaterial = new Material(Shader.Find("Standard"));
+            beanbagMaterial.color = startupAccentColor;
+            beanbagRenderer.sharedMaterial = beanbagMaterial;
         }
     }
 
@@ -775,11 +784,11 @@ public class EnvironmentCreatorTool : EditorWindow
         {
             GameObject couch = Instantiate(couchPrefab, parent.transform);
             couch.name = "Couch";
-            couch.transform.localPosition = new Vector3(0, -1.25f, -2);
+            couch.transform.localPosition = new Vector3(0, 0.25f, -2);
             
             GameObject table = Instantiate(tablePrefab, parent.transform);
             table.name = "CoffeeTable";
-            table.transform.localPosition = new Vector3(0, -1.35f, -1);
+            table.transform.localPosition = new Vector3(0, 0.15f, -1);
         }
         else
         {
@@ -787,43 +796,46 @@ public class EnvironmentCreatorTool : EditorWindow
             // Couch
             GameObject couch = GameObject.CreatePrimitive(PrimitiveType.Cube);
             couch.name = "Couch";
-            couch.transform.parent = parent.transform;
-            couch.transform.localPosition = new Vector3(0, -1.25f, -2);
+            couch.transform.SetParent(parent.transform, false);
+            couch.transform.localPosition = new Vector3(0, 0.25f, -2);
             couch.transform.localScale = new Vector3(2, 0.5f, 0.7f);
             
             Renderer couchRenderer = couch.GetComponent<Renderer>();
             if (couchRenderer != null)
             {
-                couchRenderer.material = new Material(Shader.Find("Standard"));
-                couchRenderer.material.color = casualAccentColor;
+                Material couchMaterial = new Material(Shader.Find("Standard"));
+                couchMaterial.color = casualAccentColor;
+                couchRenderer.sharedMaterial = couchMaterial;
             }
             
             // Couch Back
             GameObject couchBack = GameObject.CreatePrimitive(PrimitiveType.Cube);
             couchBack.name = "CouchBack";
-            couchBack.transform.parent = couch.transform;
+            couchBack.transform.SetParent(couch.transform, false);
             couchBack.transform.localPosition = new Vector3(0, 0.5f, -0.4f);
             couchBack.transform.localScale = new Vector3(1, 0.8f, 0.1f);
             
             Renderer couchBackRenderer = couchBack.GetComponent<Renderer>();
             if (couchBackRenderer != null)
             {
-                couchBackRenderer.material = new Material(Shader.Find("Standard"));
-                couchBackRenderer.material.color = casualAccentColor;
+                Material couchBackMaterial = new Material(Shader.Find("Standard"));
+                couchBackMaterial.color = casualAccentColor;
+                couchBackRenderer.sharedMaterial = couchBackMaterial;
             }
             
             // Coffee Table
             GameObject coffeeTable = GameObject.CreatePrimitive(PrimitiveType.Cube);
             coffeeTable.name = "CoffeeTable";
-            coffeeTable.transform.parent = parent.transform;
-            coffeeTable.transform.localPosition = new Vector3(0, -1.35f, -1);
+            coffeeTable.transform.SetParent(parent.transform, false);
+            coffeeTable.transform.localPosition = new Vector3(0, 0.15f, -1);
             coffeeTable.transform.localScale = new Vector3(1, 0.1f, 0.5f);
             
             Renderer tableRenderer = coffeeTable.GetComponent<Renderer>();
             if (tableRenderer != null)
             {
-                tableRenderer.material = new Material(Shader.Find("Standard"));
-                tableRenderer.material.color = new Color(0.4f, 0.3f, 0.2f);
+                Material tableMaterial = new Material(Shader.Find("Standard"));
+                tableMaterial.color = new Color(0.4f, 0.3f, 0.2f);
+                tableRenderer.sharedMaterial = tableMaterial;
             }
             
             // Coffee Table Legs
@@ -834,15 +846,16 @@ public class EnvironmentCreatorTool : EditorWindow
                 
                 GameObject leg = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 leg.name = $"TableLeg_{i}";
-                leg.transform.parent = coffeeTable.transform;
+                leg.transform.SetParent(coffeeTable.transform, false);
                 leg.transform.localPosition = new Vector3(xPos, -1, zPos);
                 leg.transform.localScale = new Vector3(0.05f, 1, 0.05f);
                 
                 Renderer legRenderer = leg.GetComponent<Renderer>();
                 if (legRenderer != null)
                 {
-                    legRenderer.material = new Material(Shader.Find("Standard"));
-                    legRenderer.material.color = new Color(0.3f, 0.2f, 0.1f);
+                    Material legMaterial = new Material(Shader.Find("Standard"));
+                    legMaterial.color = new Color(0.3f, 0.2f, 0.1f);
+                    legRenderer.sharedMaterial = legMaterial;
                 }
             }
         }
@@ -850,47 +863,50 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a rug
         GameObject rug = GameObject.CreatePrimitive(PrimitiveType.Cube);
         rug.name = "Rug";
-        rug.transform.parent = parent.transform;
-        rug.transform.localPosition = new Vector3(0, -1.45f, -1.5f);
+        rug.transform.SetParent(parent.transform, false);
+        rug.transform.localPosition = new Vector3(0, 0.05f, -1.5f);
         rug.transform.localScale = new Vector3(3, 0.02f, 2);
         
         Renderer rugRenderer = rug.GetComponent<Renderer>();
         if (rugRenderer != null)
         {
-            rugRenderer.material = new Material(Shader.Find("Standard"));
-            rugRenderer.material.color = new Color(0.8f, 0.7f, 0.6f);
+            Material rugMaterial = new Material(Shader.Find("Standard"));
+            rugMaterial.color = new Color(0.8f, 0.7f, 0.6f);
+            rugRenderer.sharedMaterial = rugMaterial;
         }
         
         // Add a lamp
         GameObject lampStand = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         lampStand.name = "LampStand";
-        lampStand.transform.parent = parent.transform;
-        lampStand.transform.localPosition = new Vector3(1.5f, -1, -0.5f);
+        lampStand.transform.SetParent(parent.transform, false);
+        lampStand.transform.localPosition = new Vector3(1.5f, 0.5f, -0.5f);
         lampStand.transform.localScale = new Vector3(0.05f, 1, 0.05f);
         
         Renderer lampStandRenderer = lampStand.GetComponent<Renderer>();
         if (lampStandRenderer != null)
         {
-            lampStandRenderer.material = new Material(Shader.Find("Standard"));
-            lampStandRenderer.material.color = new Color(0.3f, 0.3f, 0.3f);
+            Material lampStandMaterial = new Material(Shader.Find("Standard"));
+            lampStandMaterial.color = new Color(0.3f, 0.3f, 0.3f);
+            lampStandRenderer.sharedMaterial = lampStandMaterial;
         }
         
         GameObject lampShade = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         lampShade.name = "LampShade";
-        lampShade.transform.parent = lampStand.transform;
+        lampShade.transform.SetParent(lampStand.transform, false);
         lampShade.transform.localPosition = new Vector3(0, 1.2f, 0);
         lampShade.transform.localScale = new Vector3(5, 0.3f, 5);
         
         Renderer lampShadeRenderer = lampShade.GetComponent<Renderer>();
         if (lampShadeRenderer != null)
         {
-            lampShadeRenderer.material = new Material(Shader.Find("Standard"));
-            lampShadeRenderer.material.color = new Color(0.9f, 0.9f, 0.8f);
+            Material lampShadeMaterial = new Material(Shader.Find("Standard"));
+            lampShadeMaterial.color = new Color(0.9f, 0.9f, 0.8f);
+            lampShadeRenderer.sharedMaterial = lampShadeMaterial;
         }
         
         // Add a light to the lamp
         GameObject lampLight = new GameObject("LampLight");
-        lampLight.transform.parent = lampShade.transform;
+        lampLight.transform.SetParent(lampShade.transform, false);
         lampLight.transform.localPosition = new Vector3(0, 0, 0);
         
         Light light = lampLight.AddComponent<Light>();
@@ -905,15 +921,16 @@ public class EnvironmentCreatorTool : EditorWindow
         // Create desk top
         GameObject desk = GameObject.CreatePrimitive(PrimitiveType.Cube);
         desk.name = "Desk";
-        desk.transform.parent = parent.transform;
-        desk.transform.localPosition = position;
+        desk.transform.SetParent(parent.transform, false);
+        desk.transform.localPosition = new Vector3(position.x, position.y + scale.y/2, position.z);
         desk.transform.localScale = scale;
         
         Renderer deskRenderer = desk.GetComponent<Renderer>();
         if (deskRenderer != null)
         {
-            deskRenderer.material = new Material(Shader.Find("Standard"));
-            deskRenderer.material.color = color;
+            Material deskMaterial = new Material(Shader.Find("Standard"));
+            deskMaterial.color = color;
+            deskRenderer.sharedMaterial = deskMaterial;
         }
         
         // Create desk legs
@@ -928,26 +945,29 @@ public class EnvironmentCreatorTool : EditorWindow
             
             GameObject leg = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             leg.name = $"DeskLeg_{i}";
-            leg.transform.parent = desk.transform;
-            leg.transform.localPosition = new Vector3(xPos, -legHeight, zPos);
+            leg.transform.SetParent(desk.transform, false);
+            leg.transform.localPosition = new Vector3(xPos, -(legHeight/2 + scale.y/2), zPos);
             leg.transform.localScale = new Vector3(0.05f, legHeight, 0.05f);
             
             Renderer legRenderer = leg.GetComponent<Renderer>();
             if (legRenderer != null)
             {
-                legRenderer.material = new Material(Shader.Find("Standard"));
-                legRenderer.material.color = color * 0.8f;
+                Material legMaterial = new Material(Shader.Find("Standard"));
+                legMaterial.color = color * 0.8f;
+                legRenderer.sharedMaterial = legMaterial;
             }
         }
     }
 
     private void CreatePrimitiveChair(GameObject parent, Vector3 position, Color color, bool facingAway = false)
     {
+        float seatHeight = 0.4f;
+        
         // Create chair seat
         GameObject chair = GameObject.CreatePrimitive(PrimitiveType.Cube);
         chair.name = "Chair";
-        chair.transform.parent = parent.transform;
-        chair.transform.localPosition = position;
+        chair.transform.SetParent(parent.transform, false);
+        chair.transform.localPosition = new Vector3(position.x, position.y + seatHeight, position.z);
         chair.transform.localScale = new Vector3(0.5f, 0.1f, 0.5f);
         
         if (facingAway)
@@ -958,28 +978,30 @@ public class EnvironmentCreatorTool : EditorWindow
         Renderer chairRenderer = chair.GetComponent<Renderer>();
         if (chairRenderer != null)
         {
-            chairRenderer.material = new Material(Shader.Find("Standard"));
-            chairRenderer.material.color = color;
+            Material chairMaterial = new Material(Shader.Find("Standard"));
+            chairMaterial.color = color;
+            chairRenderer.sharedMaterial = chairMaterial;
         }
         
         // Create chair back
         GameObject chairBack = GameObject.CreatePrimitive(PrimitiveType.Cube);
         chairBack.name = "ChairBack";
-        chairBack.transform.parent = chair.transform;
+        chairBack.transform.SetParent(chair.transform, false);
         chairBack.transform.localPosition = new Vector3(0, 0.5f, -0.25f);
         chairBack.transform.localScale = new Vector3(0.5f, 1, 0.1f);
         
         Renderer chairBackRenderer = chairBack.GetComponent<Renderer>();
         if (chairBackRenderer != null)
         {
-            chairBackRenderer.material = new Material(Shader.Find("Standard"));
-            chairBackRenderer.material.color = color;
+            Material chairBackMaterial = new Material(Shader.Find("Standard"));
+            chairBackMaterial.color = color;
+            chairBackRenderer.sharedMaterial = chairBackMaterial;
         }
         
         // Create chair legs
         float xOffset = 0.2f;
         float zOffset = 0.2f;
-        float legHeight = 0.7f;
+        float legHeight = 0.4f;
         
         for (int i = 0; i < 4; i++)
         {
@@ -988,15 +1010,16 @@ public class EnvironmentCreatorTool : EditorWindow
             
             GameObject leg = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             leg.name = $"ChairLeg_{i}";
-            leg.transform.parent = chair.transform;
-            leg.transform.localPosition = new Vector3(xPos, -legHeight/2, zPos);
+            leg.transform.SetParent(chair.transform, false);
+            leg.transform.localPosition = new Vector3(xPos, -(legHeight/2 + 0.05f), zPos);
             leg.transform.localScale = new Vector3(0.05f, legHeight, 0.05f);
             
             Renderer legRenderer = leg.GetComponent<Renderer>();
             if (legRenderer != null)
             {
-                legRenderer.material = new Material(Shader.Find("Standard"));
-                legRenderer.material.color = color * 0.8f;
+                Material legMaterial = new Material(Shader.Find("Standard"));
+                legMaterial.color = color * 0.8f;
+                legRenderer.sharedMaterial = legMaterial;
             }
         }
     }
@@ -1025,15 +1048,16 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a phone
         GameObject phone = GameObject.CreatePrimitive(PrimitiveType.Cube);
         phone.name = "Phone";
-        phone.transform.parent = parent.transform;
-        phone.transform.localPosition = new Vector3(0.8f, -1.35f, -2);
+        phone.transform.SetParent(parent.transform, false);
+        phone.transform.localPosition = new Vector3(0.8f, 0.15f, -2);
         phone.transform.localScale = new Vector3(0.1f, 0.02f, 0.2f);
         
         Renderer phoneRenderer = phone.GetComponent<Renderer>();
         if (phoneRenderer != null)
         {
-            phoneRenderer.material = new Material(Shader.Find("Standard"));
-            phoneRenderer.material.color = Color.black;
+            Material phoneMaterial = new Material(Shader.Find("Standard"));
+            phoneMaterial.color = Color.black;
+            phoneRenderer.sharedMaterial = phoneMaterial;
         }
         
         // Add script if available
@@ -1042,30 +1066,32 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a pen holder with pens
         GameObject penHolder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         penHolder.name = "PenHolder";
-        penHolder.transform.parent = parent.transform;
-        penHolder.transform.localPosition = new Vector3(-0.8f, -1.3f, -2);
+        penHolder.transform.SetParent(parent.transform, false);
+        penHolder.transform.localPosition = new Vector3(-0.8f, 0.2f, -2);
         penHolder.transform.localScale = new Vector3(0.05f, 0.15f, 0.05f);
         
         Renderer penHolderRenderer = penHolder.GetComponent<Renderer>();
         if (penHolderRenderer != null)
         {
-            penHolderRenderer.material = new Material(Shader.Find("Standard"));
-            penHolderRenderer.material.color = new Color(0.1f, 0.1f, 0.1f);
+            Material penHolderMaterial = new Material(Shader.Find("Standard"));
+            penHolderMaterial.color = new Color(0.1f, 0.1f, 0.1f);
+            penHolderRenderer.sharedMaterial = penHolderMaterial;
         }
         
         // Add a calendar
         GameObject calendar = GameObject.CreatePrimitive(PrimitiveType.Cube);
         calendar.name = "Calendar";
-        calendar.transform.parent = parent.transform;
-        calendar.transform.localPosition = new Vector3(0, -1.37f, -2.3f);
+        calendar.transform.SetParent(parent.transform, false);
+        calendar.transform.localPosition = new Vector3(0, 0.13f, -2.3f);
         calendar.transform.localScale = new Vector3(0.3f, 0.02f, 0.25f);
         calendar.transform.localRotation = Quaternion.Euler(0, 0, 10);
         
         Renderer calendarRenderer = calendar.GetComponent<Renderer>();
         if (calendarRenderer != null)
         {
-            calendarRenderer.material = new Material(Shader.Find("Standard"));
-            calendarRenderer.material.color = Color.white;
+            Material calendarMaterial = new Material(Shader.Find("Standard"));
+            calendarMaterial.color = Color.white;
+            calendarRenderer.sharedMaterial = calendarMaterial;
         }
         
         TryAddComponentByTypeName(calendar, "InteractableItem");
@@ -1076,20 +1102,21 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a laptop
         GameObject laptop = GameObject.CreatePrimitive(PrimitiveType.Cube);
         laptop.name = "Laptop";
-        laptop.transform.parent = parent.transform;
-        laptop.transform.localPosition = new Vector3(0, -1.37f, -2);
+        laptop.transform.SetParent(parent.transform, false);
+        laptop.transform.localPosition = new Vector3(0, 0.13f, -2);
         laptop.transform.localScale = new Vector3(0.4f, 0.02f, 0.3f);
         
         Renderer laptopRenderer = laptop.GetComponent<Renderer>();
         if (laptopRenderer != null)
         {
-            laptopRenderer.material = new Material(Shader.Find("Standard"));
-            laptopRenderer.material.color = new Color(0.2f, 0.2f, 0.2f);
+            Material laptopMaterial = new Material(Shader.Find("Standard"));
+            laptopMaterial.color = new Color(0.2f, 0.2f, 0.2f);
+            laptopRenderer.sharedMaterial = laptopMaterial;
         }
         
         GameObject laptopScreen = GameObject.CreatePrimitive(PrimitiveType.Cube);
         laptopScreen.name = "LaptopScreen";
-        laptopScreen.transform.parent = laptop.transform;
+        laptopScreen.transform.SetParent(laptop.transform, false);
         laptopScreen.transform.localPosition = new Vector3(0, 2, -0.15f);
         laptopScreen.transform.localScale = new Vector3(1, 8, 0.1f);
         laptopScreen.transform.localRotation = Quaternion.Euler(-15, 0, 0);
@@ -1097,8 +1124,9 @@ public class EnvironmentCreatorTool : EditorWindow
         Renderer laptopScreenRenderer = laptopScreen.GetComponent<Renderer>();
         if (laptopScreenRenderer != null)
         {
-            laptopScreenRenderer.material = new Material(Shader.Find("Standard"));
-            laptopScreenRenderer.material.color = new Color(0.1f, 0.1f, 0.1f);
+            Material laptopScreenMaterial = new Material(Shader.Find("Standard"));
+            laptopScreenMaterial.color = new Color(0.1f, 0.1f, 0.1f);
+            laptopScreenRenderer.sharedMaterial = laptopScreenMaterial;
         }
         
         TryAddComponentByTypeName(laptop, "InteractableItem");
@@ -1106,15 +1134,16 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a coffee mug
         GameObject mug = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         mug.name = "CoffeeMug";
-        mug.transform.parent = parent.transform;
-        mug.transform.localPosition = new Vector3(0.5f, -1.3f, -2);
+        mug.transform.SetParent(parent.transform, false);
+        mug.transform.localPosition = new Vector3(0.5f, 0.2f, -2);
         mug.transform.localScale = new Vector3(0.05f, 0.1f, 0.05f);
         
         Renderer mugRenderer = mug.GetComponent<Renderer>();
         if (mugRenderer != null)
         {
-            mugRenderer.material = new Material(Shader.Find("Standard"));
-            mugRenderer.material.color = startupAccentColor;
+            Material mugMaterial = new Material(Shader.Find("Standard"));
+            mugMaterial.color = startupAccentColor;
+            mugRenderer.sharedMaterial = mugMaterial;
         }
         
         TryAddComponentByTypeName(mug, "InteractableItem");
@@ -1122,15 +1151,16 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a stress ball
         GameObject stressBall = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         stressBall.name = "StressBall";
-        stressBall.transform.parent = parent.transform;
-        stressBall.transform.localPosition = new Vector3(-0.5f, -1.35f, -2);
+        stressBall.transform.SetParent(parent.transform, false);
+        stressBall.transform.localPosition = new Vector3(-0.5f, 0.15f, -2);
         stressBall.transform.localScale = new Vector3(0.07f, 0.07f, 0.07f);
         
         Renderer stressBallRenderer = stressBall.GetComponent<Renderer>();
         if (stressBallRenderer != null)
         {
-            stressBallRenderer.material = new Material(Shader.Find("Standard"));
-            stressBallRenderer.material.color = new Color(0.9f, 0.2f, 0.2f);
+            Material stressBallMaterial = new Material(Shader.Find("Standard"));
+            stressBallMaterial.color = new Color(0.9f, 0.2f, 0.2f);
+            stressBallRenderer.sharedMaterial = stressBallMaterial;
         }
         
         TryAddComponentByTypeName(stressBall, "InteractableItem");
@@ -1141,16 +1171,17 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a book
         GameObject book = GameObject.CreatePrimitive(PrimitiveType.Cube);
         book.name = "Book";
-        book.transform.parent = parent.transform;
-        book.transform.localPosition = new Vector3(0.3f, -1.28f, -1);
+        book.transform.SetParent(parent.transform, false);
+        book.transform.localPosition = new Vector3(0.3f, 0.22f, -1);
         book.transform.localScale = new Vector3(0.2f, 0.03f, 0.15f);
         book.transform.localRotation = Quaternion.Euler(0, 15, 0);
         
         Renderer bookRenderer = book.GetComponent<Renderer>();
         if (bookRenderer != null)
         {
-            bookRenderer.material = new Material(Shader.Find("Standard"));
-            bookRenderer.material.color = new Color(0.2f, 0.3f, 0.8f);
+            Material bookMaterial = new Material(Shader.Find("Standard"));
+            bookMaterial.color = new Color(0.2f, 0.3f, 0.8f);
+            bookRenderer.sharedMaterial = bookMaterial;
         }
         
         TryAddComponentByTypeName(book, "InteractableItem");
@@ -1158,16 +1189,17 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a remote control
         GameObject remote = GameObject.CreatePrimitive(PrimitiveType.Cube);
         remote.name = "RemoteControl";
-        remote.transform.parent = parent.transform;
-        remote.transform.localPosition = new Vector3(-0.2f, -1.28f, -1);
+        remote.transform.SetParent(parent.transform, false);
+        remote.transform.localPosition = new Vector3(-0.2f, 0.22f, -1);
         remote.transform.localScale = new Vector3(0.05f, 0.02f, 0.15f);
         remote.transform.localRotation = Quaternion.Euler(0, -30, 0);
         
         Renderer remoteRenderer = remote.GetComponent<Renderer>();
         if (remoteRenderer != null)
         {
-            remoteRenderer.material = new Material(Shader.Find("Standard"));
-            remoteRenderer.material.color = Color.black;
+            Material remoteMaterial = new Material(Shader.Find("Standard"));
+            remoteMaterial.color = Color.black;
+            remoteRenderer.sharedMaterial = remoteMaterial;
         }
         
         TryAddComponentByTypeName(remote, "InteractableItem");
@@ -1175,15 +1207,16 @@ public class EnvironmentCreatorTool : EditorWindow
         // Add a coffee cup
         GameObject cup = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         cup.name = "CoffeeCup";
-        cup.transform.parent = parent.transform;
-        cup.transform.localPosition = new Vector3(0, -1.28f, -0.8f);
+        cup.transform.SetParent(parent.transform, false);
+        cup.transform.localPosition = new Vector3(0, 0.22f, -0.8f);
         cup.transform.localScale = new Vector3(0.04f, 0.07f, 0.04f);
         
         Renderer cupRenderer = cup.GetComponent<Renderer>();
         if (cupRenderer != null)
         {
-            cupRenderer.material = new Material(Shader.Find("Standard"));
-            cupRenderer.material.color = Color.white;
+            Material cupMaterial = new Material(Shader.Find("Standard"));
+            cupMaterial.color = Color.white;
+            cupRenderer.sharedMaterial = cupMaterial;
         }
         
         TryAddComponentByTypeName(cup, "InteractableItem");
@@ -1200,41 +1233,43 @@ public class EnvironmentCreatorTool : EditorWindow
                 {
                     GameObject certificate = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     certificate.name = $"Certificate_{i}";
-                    certificate.transform.parent = parent.transform;
+                    certificate.transform.SetParent(parent.transform, false);
                     certificate.transform.localPosition = new Vector3(-2.5f + i * 0.8f, 0, -3.95f);
                     certificate.transform.localScale = new Vector3(0.5f, 0.7f, 0.02f);
                     
                     Renderer certificateRenderer = certificate.GetComponent<Renderer>();
                     if (certificateRenderer != null)
                     {
-                        certificateRenderer.material = new Material(Shader.Find("Standard"));
-                        certificateRenderer.material.color = Color.white;
+                        Material certificateMaterial = new Material(Shader.Find("Standard"));
+                        certificateMaterial.color = Color.white;
+                        certificateRenderer.sharedMaterial = certificateMaterial;
                     }
                 }
                 
                 // Add a desk lamp
                 GameObject deskLamp = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 deskLamp.name = "DeskLamp";
-                deskLamp.transform.parent = parent.transform;
-                deskLamp.transform.localPosition = new Vector3(-0.5f, -1.2f, -2.3f);
+                deskLamp.transform.SetParent(parent.transform, false);
+                deskLamp.transform.localPosition = new Vector3(-0.5f, 0.3f, -2.3f);
                 deskLamp.transform.localScale = new Vector3(0.05f, 0.2f, 0.05f);
                 
                 GameObject lampHead = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 lampHead.name = "LampHead";
-                lampHead.transform.parent = deskLamp.transform;
+                lampHead.transform.SetParent(deskLamp.transform, false);
                 lampHead.transform.localPosition = new Vector3(0, 1, 0.5f);
                 lampHead.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                 
                 Renderer lampHeadRenderer = lampHead.GetComponent<Renderer>();
                 if (lampHeadRenderer != null)
                 {
-                    lampHeadRenderer.material = new Material(Shader.Find("Standard"));
-                    lampHeadRenderer.material.color = new Color(0.8f, 0.8f, 0.7f);
+                    Material lampHeadMaterial = new Material(Shader.Find("Standard"));
+                    lampHeadMaterial.color = new Color(0.8f, 0.8f, 0.7f);
+                    lampHeadRenderer.sharedMaterial = lampHeadMaterial;
                 }
                 
                 // Add a light to the lamp
                 GameObject lampLight = new GameObject("LampLight");
-                lampLight.transform.parent = lampHead.transform;
+                lampLight.transform.SetParent(lampHead.transform, false);
                 
                 Light light = lampLight.AddComponent<Light>();
                 light.type = LightType.Spot;
@@ -1248,7 +1283,7 @@ public class EnvironmentCreatorTool : EditorWindow
                 // Add a whiteboard with sketches
                 GameObject whiteboard = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 whiteboard.name = "Whiteboard";
-                whiteboard.transform.parent = parent.transform;
+                whiteboard.transform.SetParent(parent.transform, false);
                 whiteboard.transform.localPosition = new Vector3(-3.95f, 0, 0);
                 whiteboard.transform.localScale = new Vector3(0.05f, 1.5f, 2);
                 whiteboard.transform.localRotation = Quaternion.Euler(0, 90, 0);
@@ -1256,8 +1291,9 @@ public class EnvironmentCreatorTool : EditorWindow
                 Renderer whiteboardRenderer = whiteboard.GetComponent<Renderer>();
                 if (whiteboardRenderer != null)
                 {
-                    whiteboardRenderer.material = new Material(Shader.Find("Standard"));
-                    whiteboardRenderer.material.color = Color.white;
+                    Material whiteboardMaterial = new Material(Shader.Find("Standard"));
+                    whiteboardMaterial.color = Color.white;
+                    whiteboardRenderer.sharedMaterial = whiteboardMaterial;
                 }
                 
                 // Add sticky notes
@@ -1269,7 +1305,7 @@ public class EnvironmentCreatorTool : EditorWindow
                     
                     GameObject stickyNote = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     stickyNote.name = $"StickyNote_{i}";
-                    stickyNote.transform.parent = parent.transform;
+                    stickyNote.transform.SetParent(parent.transform, false);
                     stickyNote.transform.localPosition = new Vector3(xPos, yPos, zPos);
                     stickyNote.transform.localScale = new Vector3(0.02f, 0.1f, 0.1f);
                     stickyNote.transform.localRotation = Quaternion.Euler(Random.Range(-5f, 5f), 90, Random.Range(-5f, 5f));
@@ -1277,7 +1313,7 @@ public class EnvironmentCreatorTool : EditorWindow
                     Renderer stickyNoteRenderer = stickyNote.GetComponent<Renderer>();
                     if (stickyNoteRenderer != null)
                     {
-                        stickyNoteRenderer.material = new Material(Shader.Find("Standard"));
+                        Material stickyNoteMaterial = new Material(Shader.Find("Standard"));
                         
                         // Random colors for sticky notes
                         Color[] stickyColors = new Color[] {
@@ -1288,7 +1324,8 @@ public class EnvironmentCreatorTool : EditorWindow
                             new Color(1.0f, 0.6f, 0.2f)  // Orange
                         };
                         
-                        stickyNoteRenderer.material.color = stickyColors[i % stickyColors.Length];
+                        stickyNoteMaterial.color = stickyColors[i % stickyColors.Length];
+                        stickyNoteRenderer.sharedMaterial = stickyNoteMaterial;
                     }
                     
                     TryAddComponentByTypeName(stickyNote, "InteractableItem");
@@ -1299,69 +1336,74 @@ public class EnvironmentCreatorTool : EditorWindow
                 // Add a picture frame
                 GameObject pictureFrame = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 pictureFrame.name = "PictureFrame";
-                pictureFrame.transform.parent = parent.transform;
+                pictureFrame.transform.SetParent(parent.transform, false);
                 pictureFrame.transform.localPosition = new Vector3(0, 0, -2.45f);
                 pictureFrame.transform.localScale = new Vector3(0.8f, 0.6f, 0.05f);
                 
                 Renderer frameRenderer = pictureFrame.GetComponent<Renderer>();
                 if (frameRenderer != null)
                 {
-                    frameRenderer.material = new Material(Shader.Find("Standard"));
-                    frameRenderer.material.color = new Color(0.5f, 0.3f, 0.2f);
+                    Material frameMaterial = new Material(Shader.Find("Standard"));
+                    frameMaterial.color = new Color(0.5f, 0.3f, 0.2f);
+                    frameRenderer.sharedMaterial = frameMaterial;
                 }
                 
                 GameObject picture = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 picture.name = "Picture";
-                picture.transform.parent = pictureFrame.transform;
+                picture.transform.SetParent(pictureFrame.transform, false);
                 picture.transform.localPosition = new Vector3(0, 0, -0.1f);
                 picture.transform.localScale = new Vector3(0.9f, 0.9f, 0.2f);
                 
                 Renderer pictureRenderer = picture.GetComponent<Renderer>();
                 if (pictureRenderer != null)
                 {
-                    pictureRenderer.material = new Material(Shader.Find("Standard"));
-                    pictureRenderer.material.color = new Color(0.3f, 0.6f, 1.0f);
+                    Material pictureMaterial = new Material(Shader.Find("Standard"));
+                    pictureMaterial.color = new Color(0.3f, 0.6f, 1.0f);
+                    pictureRenderer.sharedMaterial = pictureMaterial;
                 }
                 
                 // Add a rug
                 GameObject rug = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 rug.name = "Rug";
-                rug.transform.parent = parent.transform;
-                rug.transform.localPosition = new Vector3(0, -1.45f, -1.5f);
+                rug.transform.SetParent(parent.transform, false);
+                rug.transform.localPosition = new Vector3(0, 0.05f, -1.5f);
                 rug.transform.localScale = new Vector3(3, 0.02f, 2);
                 
                 Renderer rugRenderer = rug.GetComponent<Renderer>();
                 if (rugRenderer != null)
                 {
-                    rugRenderer.material = new Material(Shader.Find("Standard"));
-                    rugRenderer.material.color = new Color(0.6f, 0.4f, 0.3f);
+                    Material rugMaterial = new Material(Shader.Find("Standard"));
+                    rugMaterial.color = new Color(0.6f, 0.4f, 0.3f);
+                    rugRenderer.sharedMaterial = rugMaterial;
                 }
                 
                 // Add a plant
                 GameObject plantPot = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 plantPot.name = "PlantPot";
-                plantPot.transform.parent = parent.transform;
-                plantPot.transform.localPosition = new Vector3(2, -1, 2);
+                plantPot.transform.SetParent(parent.transform, false);
+                plantPot.transform.localPosition = new Vector3(2, 0.5f, 2);
                 plantPot.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                 
                 Renderer potRenderer = plantPot.GetComponent<Renderer>();
                 if (potRenderer != null)
                 {
-                    potRenderer.material = new Material(Shader.Find("Standard"));
-                    potRenderer.material.color = new Color(0.6f, 0.4f, 0.3f);
+                    Material potMaterial = new Material(Shader.Find("Standard"));
+                    potMaterial.color = new Color(0.6f, 0.4f, 0.3f);
+                    potRenderer.sharedMaterial = potMaterial;
                 }
                 
                 GameObject plant = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 plant.name = "Plant";
-                plant.transform.parent = plantPot.transform;
+                plant.transform.SetParent(plantPot.transform, false);
                 plant.transform.localPosition = new Vector3(0, 1.5f, 0);
                 plant.transform.localScale = new Vector3(2, 1.5f, 2);
                 
                 Renderer plantRenderer = plant.GetComponent<Renderer>();
                 if (plantRenderer != null)
                 {
-                    plantRenderer.material = new Material(Shader.Find("Standard"));
-                    plantRenderer.material.color = new Color(0.2f, 0.5f, 0.2f);
+                    Material plantMaterial = new Material(Shader.Find("Standard"));
+                    plantMaterial.color = new Color(0.2f, 0.5f, 0.2f);
+                    plantRenderer.sharedMaterial = plantMaterial;
                 }
                 break;
         }
@@ -1380,7 +1422,7 @@ public class EnvironmentCreatorTool : EditorWindow
         
         // Create a main directional light
         GameObject mainLight = new GameObject("MainDirectionalLight");
-        mainLight.transform.parent = lightingControl.transform;
+        mainLight.transform.SetParent(lightingControl.transform, false);
         
         Light directionalLight = mainLight.AddComponent<Light>();
         directionalLight.type = LightType.Directional;
@@ -1416,7 +1458,7 @@ public class EnvironmentCreatorTool : EditorWindow
                 
                 // Add a warm lamp light
                 GameObject lampLight = new GameObject("WarmLampLight");
-                lampLight.transform.parent = lightingControl.transform;
+                lampLight.transform.SetParent(lightingControl.transform, false);
                 lampLight.transform.position = new Vector3(2, 1, 1);
                 
                 Light lamp = lampLight.AddComponent<Light>();
@@ -1476,7 +1518,7 @@ public class EnvironmentCreatorTool : EditorWindow
                 float zPos = (z - (rows - 1) / 2.0f) * 3.0f;
                 
                 GameObject ceilingLight = new GameObject($"CeilingLight_{x}_{z}");
-                ceilingLight.transform.parent = parent.transform;
+                ceilingLight.transform.SetParent(parent.transform, false);
                 ceilingLight.transform.position = new Vector3(xPos, 1.4f, zPos);
                 
                 Light light = ceilingLight.AddComponent<Light>();
@@ -1503,19 +1545,19 @@ public class EnvironmentCreatorTool : EditorWindow
         {
             case EnvironmentType.Corporate:
                 // Behind the desk
-                avatar.transform.position = new Vector3(0, -0.5f, -3);
+                avatar.transform.position = new Vector3(0, 0.0f, -3);
                 avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
                 break;
                 
             case EnvironmentType.Startup:
                 // More casual position
-                avatar.transform.position = new Vector3(0, -0.5f, -2.5f);
+                avatar.transform.position = new Vector3(0, 0.0f, -2.5f);
                 avatar.transform.rotation = Quaternion.Euler(0, 180, 0);
                 break;
                 
             case EnvironmentType.Casual:
                 // Sitting on the couch
-                avatar.transform.position = new Vector3(0.5f, -0.8f, -2);
+                avatar.transform.position = new Vector3(0.5f, -0.3f, -2);
                 avatar.transform.rotation = Quaternion.Euler(0, 160, 0);
                 break;
         }
@@ -1527,41 +1569,44 @@ public class EnvironmentCreatorTool : EditorWindow
             // Create a simple avatar placeholder
             GameObject head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             head.name = "Head";
-            head.transform.parent = model.transform;
+            head.transform.SetParent(model.transform, false);
             head.transform.localPosition = new Vector3(0, 1.7f, 0);
             head.transform.localScale = new Vector3(0.2f, 0.25f, 0.2f);
             
             GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
-            body.transform.parent = model.transform;
+            body.transform.SetParent(model.transform, false);
             body.transform.localPosition = new Vector3(0, 1.0f, 0);
             body.transform.localScale = new Vector3(0.4f, 1.0f, 0.4f);
             
             Renderer headRenderer = head.GetComponent<Renderer>();
             if (headRenderer != null)
             {
-                headRenderer.material = new Material(Shader.Find("Standard"));
-                headRenderer.material.color = new Color(0.9f, 0.8f, 0.7f);
+                Material headMaterial = new Material(Shader.Find("Standard"));
+                headMaterial.color = new Color(0.9f, 0.8f, 0.7f);
+                headRenderer.sharedMaterial = headMaterial;
             }
             
             Renderer bodyRenderer = body.GetComponent<Renderer>();
             if (bodyRenderer != null)
             {
-                bodyRenderer.material = new Material(Shader.Find("Standard"));
+                Material bodyMaterial = new Material(Shader.Find("Standard"));
                 
                 // Different suit colors based on environment
                 switch (environmentType)
                 {
                     case EnvironmentType.Corporate:
-                        bodyRenderer.material.color = new Color(0.2f, 0.2f, 0.3f); // Dark suit
+                        bodyMaterial.color = new Color(0.2f, 0.2f, 0.3f); // Dark suit
                         break;
                     case EnvironmentType.Startup:
-                        bodyRenderer.material.color = new Color(0.4f, 0.4f, 0.5f); // Business casual
+                        bodyMaterial.color = new Color(0.4f, 0.4f, 0.5f); // Business casual
                         break;
                     case EnvironmentType.Casual:
-                        bodyRenderer.material.color = new Color(0.3f, 0.5f, 0.8f); // Casual blue
+                        bodyMaterial.color = new Color(0.3f, 0.5f, 0.8f); // Casual blue
                         break;
                 }
+                
+                bodyRenderer.sharedMaterial = bodyMaterial;
             }
         }
     }
@@ -1575,7 +1620,7 @@ public class EnvironmentCreatorTool : EditorWindow
         GameObject ui = GameObject.Find("UI");
         if (ui != null)
         {
-            debugPanel.transform.parent = ui.transform;
+            debugPanel.transform.SetParent(ui.transform, false);
         }
         
         // Add a canvas for the debug panel
@@ -1592,7 +1637,7 @@ public class EnvironmentCreatorTool : EditorWindow
         
         // Add background panel
         GameObject background = new GameObject("Background");
-        background.transform.parent = debugPanel.transform;
+        background.transform.SetParent(debugPanel.transform, false);
         
         UnityEngine.UI.Image backgroundImage = background.AddComponent<UnityEngine.UI.Image>();
         backgroundImage.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
@@ -1605,7 +1650,7 @@ public class EnvironmentCreatorTool : EditorWindow
         
         // Add title text
         GameObject titleObject = new GameObject("Title");
-        titleObject.transform.parent = debugPanel.transform;
+        titleObject.transform.SetParent(debugPanel.transform, false);
         
         // Try to add TextMeshProUGUI if available, otherwise use regular Text
         bool usedTMP = TryAddTMPText(titleObject, "DEBUG PANEL", 20, TextAnchor.MiddleCenter);
@@ -1631,7 +1676,7 @@ public class EnvironmentCreatorTool : EditorWindow
         
         // Add a placeholder for debug info
         GameObject infoObject = new GameObject("DebugInfo");
-        infoObject.transform.parent = debugPanel.transform;
+        infoObject.transform.SetParent(debugPanel.transform, false);
         
         usedTMP = TryAddTMPText(infoObject, "State: IDLE\nConnected: No\nSession ID: None", 14, TextAnchor.UpperLeft);
         

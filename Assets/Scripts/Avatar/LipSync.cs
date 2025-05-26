@@ -69,7 +69,26 @@ public class LipSync : MonoBehaviour
             
             if (faceRenderer == null)
             {
-                Debug.LogError("SkinnedMeshRenderer not found for LipSync!");
+                Debug.LogWarning("SkinnedMeshRenderer not found for LipSync - creating a minimal placeholder.");
+                GameObject placeholder = new GameObject("FacePlaceholder");
+                placeholder.transform.SetParent(transform);
+                faceRenderer = placeholder.AddComponent<SkinnedMeshRenderer>();
+                
+                // Create a minimal mesh for the placeholder
+                Mesh mesh = new Mesh();
+                mesh.name = "PlaceholderMesh";
+                // Add a single vertex and no triangles (just to have a valid mesh)
+                mesh.vertices = new Vector3[1] { Vector3.zero };
+                mesh.triangles = new int[0];
+                
+                faceRenderer.sharedMesh = mesh;
+                
+                // Add some placeholder blend shapes for testing
+                // We'll just set the indices but they won't do anything
+                mouthOpenIndex = 0;
+                mouthCloseIndex = 1;
+                mouthWideIndex = 2;
+                mouthNarrowIndex = 3;
             }
         }
         
@@ -84,8 +103,21 @@ public class LipSync : MonoBehaviour
                 
                 if (audioSource == null)
                 {
-                    Debug.LogWarning("AudioSource not found for LipSync! Will use procedural lip sync.");
-                }
+                Debug.LogWarning("AudioSource not found for LipSync! Adding a dummy AudioSource.");
+                    
+                // Add an AudioSource component to this GameObject
+                audioSource = gameObject.AddComponent<AudioSource>();
+                
+                // Configure it with default settings
+                audioSource.playOnAwake = false;
+                audioSource.loop = false;
+                audioSource.volume = 0.5f;
+                
+                // Set to use procedural mode as fallback
+                useAmplitudeBasedLipSync = false;
+                
+                Debug.Log("Using procedural lip sync with dummy AudioSource.");
+            }
             }
         }
     }

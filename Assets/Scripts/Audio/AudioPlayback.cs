@@ -20,7 +20,7 @@ public class AudioPlayback : MonoBehaviour
     [SerializeField] private float streamingVolume = 1.0f;
     
     [Header("Debug")]
-    [SerializeField] private bool debugMode = false;
+    [SerializeField] private bool debugMode = true; // Set to true for debugging
     
     // Events
     public event Action OnPlaybackStarted;
@@ -52,6 +52,56 @@ public class AudioPlayback : MonoBehaviour
     private void Start()
     {
         InitializeAudioSource();
+        // Test sound on startup
+        PlayTestSound();
+    }
+    
+    /// <summary>
+    /// Creates a fallback tone when normal audio conversion fails
+    /// </summary>
+    private AudioClip CreateFallbackTone()
+    {
+        int sampleRate = AudioSettings.outputSampleRate;
+        float frequency = 440f; // A4 note
+        float duration = 1.0f;
+        
+        Debug.Log($"Creating fallback tone at {frequency}Hz for {duration}s");
+        
+        AudioClip clip = AudioClip.Create("FallbackTone", (int)(sampleRate * duration), 1, sampleRate, false);
+        
+        float[] samples = new float[(int)(sampleRate * duration)];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            float t = (float)i / sampleRate;
+            // Generate a sine wave tone that fades in and out
+            float envelope = Mathf.Clamp01(Mathf.Min(t * 4, (duration - t) * 4));
+            samples[i] = Mathf.Sin(2 * Mathf.PI * frequency * t) * envelope;
+        }
+        
+        clip.SetData(samples, 0);
+        return clip;
+    }
+    
+    /// <summary>
+    /// Test method to verify audio is working
+    /// </summary>
+    public void PlayTestSound()
+    {
+        Debug.Log("Playing test sound to verify audio system...");
+        AudioClip testClip = CreateFallbackTone();
+        if (audioSource != null && testClip != null)
+        {
+            // Force settings to ensure sound is audible
+            audioSource.clip = testClip;
+            audioSource.volume = 1.0f;
+            audioSource.spatialBlend = 0f; // Force 2D audio for testing
+            audioSource.Play();
+            Debug.Log("Test sound should be playing now - if you don't hear it, check system volume");
+        }
+        else
+        {
+            Debug.LogError("Cannot play test sound - audioSource or testClip is null");
+        }
     }
     
     /// <summary>
@@ -61,6 +111,7 @@ public class AudioPlayback : MonoBehaviour
     {
         if (audioSource == null)
         {
+            Debug.Log("AudioSource was not assigned in inspector - adding a new one");
             audioSource = gameObject.AddComponent<AudioSource>();
         }
         
@@ -108,6 +159,8 @@ public class AudioPlayback : MonoBehaviour
         {
             audioSource.spatialBlend = 0f;
         }
+        
+        Debug.Log($"AudioSource initialized: volume={audioSource.volume}, spatialBlend={audioSource.spatialBlend}");
     }
     
     /// <summary>
@@ -116,6 +169,8 @@ public class AudioPlayback : MonoBehaviour
     /// <param name="audioData">The raw audio data to play.</param>
     public void PlayAudioResponse(byte[] audioData)
     {
+        Debug.Log($"PlayAudioResponse called with {audioData?.Length ?? 0} bytes");
+        
         if (audioData == null || audioData.Length == 0)
         {
             Debug.LogError("Cannot play empty audio data");
@@ -160,7 +215,15 @@ public class AudioPlayback : MonoBehaviour
         
         try
         {
+            Debug.Log($"Converting {audioData.Length} bytes to AudioClip");
             clip = audioProcessor.ConvertToAudioClip(audioData);
+            
+            // EMERGENCY FIX: If clip is null, create a fallback tone
+            if (clip == null)
+            {
+                Debug.LogWarning("Failed to convert audio data - creating fallback tone");
+                clip = CreateFallbackTone();
+            }
         }
         catch (Exception ex)
         {
@@ -176,13 +239,12 @@ public class AudioPlayback : MonoBehaviour
             yield break;
         }
         
-        if (debugMode)
-        {
-            Debug.Log($"Playing audio clip: {clip.length:F2}s, {clip.frequency}Hz, {clip.channels} channels");
-        }
+        Debug.Log($"Playing audio clip: {clip.length:F2}s, {clip.frequency}Hz, {clip.channels} channels");
         
         // Play the audio
         audioSource.clip = clip;
+        audioSource.spatialBlend = 0f; // Force 2D audio for reliable playback
+        audioSource.volume = 1.0f; // Force full volume for testing
         audioSource.Play();
         
         // Notify playback started
@@ -230,10 +292,7 @@ public class AudioPlayback : MonoBehaviour
             sessionManager.NotifyPlaybackComplete();
         }
         
-        if (debugMode)
-        {
-            Debug.Log("Audio playback completed");
-        }
+        Debug.Log("Audio playback completed");
     }
     
     /// <summary>
@@ -248,10 +307,7 @@ public class AudioPlayback : MonoBehaviour
             audioSource.Stop();
         }
         
-        if (debugMode)
-        {
-            Debug.Log($"Playing streamed audio clip: {clip.name}, {clip.length:F2}s, {clip.frequency}Hz, {clip.channels} channels, state: {clip.loadState}");
-        }
+        Debug.Log($"Playing streamed audio clip: {clip.name}, {clip.length:F2}s, {clip.frequency}Hz, {clip.channels} channels, state: {clip.loadState}");
         
         // Verify clip is valid
         if (clip == null || clip.length <= 0)
@@ -281,6 +337,7 @@ public class AudioPlayback : MonoBehaviour
         try
         {
             audioSource.volume = streamingVolume;
+            audioSource.spatialBlend = 0f; // Force 2D audio for testing
             
             // Set the clip before trying to play
             audioSource.clip = clip;
@@ -411,10 +468,7 @@ public class AudioPlayback : MonoBehaviour
                 sessionManager.NotifyPlaybackComplete();
             }
             
-            if (debugMode)
-            {
-                Debug.Log("Streamed audio playback completed");
-            }
+            Debug.Log("Streamed audio playback completed");
         }
         catch (Exception ex)
         {
@@ -447,10 +501,7 @@ public class AudioPlayback : MonoBehaviour
                 sessionManager.NotifyPlaybackComplete();
             }
             
-            if (debugMode)
-            {
-                Debug.Log("Audio playback stopped manually");
-            }
+            Debug.Log("Audio playback stopped manually");
         }
     }
     
@@ -463,10 +514,7 @@ public class AudioPlayback : MonoBehaviour
         {
             audioSource.Pause();
             
-            if (debugMode)
-            {
-                Debug.Log("Audio playback paused");
-            }
+            Debug.Log("Audio playback paused");
         }
     }
     
@@ -479,10 +527,7 @@ public class AudioPlayback : MonoBehaviour
         {
             audioSource.UnPause();
             
-            if (debugMode)
-            {
-                Debug.Log("Audio playback resumed");
-            }
+            Debug.Log("Audio playback resumed");
         }
     }
     
@@ -501,10 +546,7 @@ public class AudioPlayback : MonoBehaviour
             SettingsManager.Instance.SaveSettings();
         }
         
-        if (debugMode)
-        {
-            Debug.Log($"Streaming volume set to: {streamingVolume}");
-        }
+        Debug.Log($"Streaming volume set to: {streamingVolume}");
     }
     
     /// <summary>

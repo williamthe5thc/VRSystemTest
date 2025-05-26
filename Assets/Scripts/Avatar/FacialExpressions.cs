@@ -50,8 +50,23 @@ public class FacialExpressions : MonoBehaviour
     {
         if (faceRenderer == null)
         {
-            Debug.LogWarning("FacialExpressions: No SkinnedMeshRenderer assigned!");
-            return;
+            Debug.LogWarning("FacialExpressions: No SkinnedMeshRenderer assigned - creating a placeholder.");
+            
+            // Create a placeholder GameObject and attach a SkinnedMeshRenderer
+            GameObject placeholder = new GameObject("FacePlaceholder");
+            placeholder.transform.SetParent(transform);
+            faceRenderer = placeholder.AddComponent<SkinnedMeshRenderer>();
+            
+            // Create a minimal mesh for the placeholder
+            Mesh mesh = new Mesh();
+            mesh.name = "PlaceholderMesh";
+            // Add a single vertex and no triangles (just to have a valid mesh)
+            mesh.vertices = new Vector3[1] { Vector3.zero };
+            mesh.triangles = new int[0];
+            
+            faceRenderer.sharedMesh = mesh;
+            
+            Debug.Log("Created placeholder SkinnedMeshRenderer for FacialExpressions");
         }
         
         // Stop any ongoing expression transition

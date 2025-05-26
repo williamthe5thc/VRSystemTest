@@ -2,9 +2,11 @@ using System;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
+using VRInterview; // Added namespace reference for PlatformManager
 
 /// <summary>
 /// Handles audio format conversion and processing for the interview system.
+/// Enhanced with cross-platform compatibility for Mac and AMD GPU systems.
 /// </summary>
 public class AudioProcessor : MonoBehaviour
 {
@@ -19,9 +21,39 @@ public class AudioProcessor : MonoBehaviour
     
     private int _captureCount = 0;
     private int _responseCount = 0;
+    private int _platformOptimalSampleRate;
+    private bool _isInitialized = false;
     
     private void Start()
     {
+        Initialize();
+    }
+    
+    /// <summary>
+    /// Initializes the audio processor with platform-specific settings.
+    /// </summary>
+    public void Initialize()
+    {
+        if (_isInitialized) return;
+        
+        // Get platform-specific settings
+        if (PlatformManager.Instance != null)
+        {
+            _platformOptimalSampleRate = PlatformManager.Instance.GetOptimalSampleRate();
+            
+            // Use platform-recommended sample rate if one wasn't explicitly set
+            if (sampleRate <= 0)
+            {
+                sampleRate = _platformOptimalSampleRate;
+            }
+            
+            Debug.Log($"Platform optimal sample rate: {_platformOptimalSampleRate} Hz, Using: {sampleRate} Hz");
+        }
+        else
+        {
+            Debug.LogWarning("PlatformManager not available. Using default sample rate.");
+        }
+        
         // Create save directory if needed
         if (saveAudioFiles)
         {
@@ -30,6 +62,8 @@ public class AudioProcessor : MonoBehaviour
         
         Debug.Log($"AudioProcessor initialized with sample rate: {sampleRate}, format: {audioFormat}");
         Debug.Log($"Save audio files: {saveAudioFiles}, directory: {Path.Combine(Application.persistentDataPath, saveDirectory)}");
+        
+        _isInitialized = true;
     }
     
     /// <summary>
@@ -45,9 +79,14 @@ public class AudioProcessor : MonoBehaviour
             return new byte[0];
         }
         
+        if (!_isInitialized)
+        {
+            Initialize();
+        }
+        
         try
         {
-            Debug.Log($"Processing audio clip: {clip.length} samples, {clip.channels} channels, {clip.frequency}Hz");
+            Debug.Log($"Processing audio clip: {clip.length} seconds, {clip.samples} samples, {clip.channels} channels, {clip.frequency}Hz");
             
             // Check if the clip actually contains audio data
             float[] sampleData = new float[clip.samples * clip.channels];
@@ -66,11 +105,19 @@ public class AudioProcessor : MonoBehaviour
                 Debug.LogWarning("Audio clip contains very low amplitude. May result in poor transcription.");
             }
             
+            // Check if resampling is needed
+            AudioClip processedClip = clip;
+            if (clip.frequency != sampleRate)
+            {
+                Debug.Log($"Resampling from {clip.frequency}Hz to {sampleRate}Hz");
+                processedClip = ResampleAudioClip(clip, sampleRate);
+            }
+            
             // Convert AudioClip to byte array in the specified format
             byte[] audioData;
             
             // For simplicity and reliability, always use WAV format
-            audioData = ConvertToWAV(clip);
+            audioData = AudioClipToWav(processedClip);
             
             // Save debug copy if enabled
             if (saveAudioFiles)
@@ -90,48 +137,120 @@ public class AudioProcessor : MonoBehaviour
     }
     
     /// <summary>
-    /// Converts an AudioClip to WAV format.
+    /// Resamples an AudioClip to a different sample rate
+    /// Critical for Mac compatibility since macOS often uses 44.1kHz or 48kHz
     /// </summary>
-    /// <param name="clip">The audio clip to convert.</param>
-    /// <returns>WAV audio data as byte array.</returns>
-    private byte[] ConvertToWAV(AudioClip clip)
+    public AudioClip ResampleAudioClip(AudioClip clip, int targetSampleRate)
     {
-        // Get audio data
-        float[] samples = new float[clip.samples * clip.channels];
+        if (clip == null) return null;
+        
+        // Check if resampling is needed
+        if (clip.frequency == targetSampleRate)
+        {
+            return clip;
+        }
+        
+        Debug.Log($"Resampling audio from {clip.frequency}Hz to {targetSampleRate}Hz");
+        
+        // Get original clip data
+        float[] originalData = new float[clip.samples * clip.channels];
+        clip.GetData(originalData, 0);
+        
+        // Calculate resampling ratio
+        float ratio = (float)targetSampleRate / clip.frequency;
+        
+        // Calculate new sample count
+        int newSampleCount = Mathf.CeilToInt(clip.samples * ratio);
+        
+        // Create resampled data array
+        float[] resampledData = new float[newSampleCount];
+        
+        // Simple linear interpolation resampling
+        // Note: For production, consider using a more sophisticated algorithm
+        for (int i = 0; i < newSampleCount; i++)
+        {
+            // Calculate the position in the original array
+            float position = i / ratio;
+            int index1 = Mathf.FloorToInt(position);
+            int index2 = Mathf.Min(index1 + 1, clip.samples - 1);
+            
+            // Get interpolation factor
+            float factor = position - index1;
+            
+            // Linear interpolation
+            resampledData[i] = Mathf.Lerp(originalData[index1], originalData[index2], factor);
+        }
+        
+        // Create new AudioClip
+        AudioClip resampledClip = AudioClip.Create(
+            $"{clip.name}_resampled",
+            newSampleCount,
+            1,  // Always mono for our use case
+            targetSampleRate,
+            false
+        );
+        
+        // Set data
+        resampledClip.SetData(resampledData, 0);
+        
+        return resampledClip;
+    }
+    
+    /// <summary>
+    /// Converts AudioClip to WAV byte array with platform-specific optimizations
+    /// </summary>
+    public byte[] AudioClipToWav(AudioClip clip)
+    {
+        // Get platform information
+        bool isMac = false;
+        if (PlatformManager.Instance != null)
+        {
+            isMac = PlatformManager.Instance.CurrentPlatform == PlatformManager.Platform.MacOS;
+        }
+        
+        // Get samples
+        float[] samples = new float[clip.samples];
         clip.GetData(samples, 0);
         
-        Debug.Log($"Converting AudioClip to WAV: {samples.Length} samples, {clip.channels} channels, {clip.frequency}Hz");
-        
-        // Create WAV file bytes
-        using (MemoryStream ms = new MemoryStream())
+        // Convert to 16-bit PCM
+        Int16[] intData = new Int16[samples.Length];
+        for (int i = 0; i < samples.Length; i++)
         {
-            using (BinaryWriter writer = new BinaryWriter(ms))
+            intData[i] = (short)(samples[i] * 32767);
+        }
+        
+        using (MemoryStream stream = new MemoryStream())
+        {
+            using (BinaryWriter writer = new BinaryWriter(stream))
             {
-                // WAV header
-                writer.Write(new char[] { 'R', 'I', 'F', 'F' });
-                writer.Write(36 + samples.Length * 2);
-                writer.Write(new char[] { 'W', 'A', 'V', 'E' });
-                writer.Write(new char[] { 'f', 'm', 't', ' ' });
-                writer.Write(16);
-                writer.Write((short)1); // PCM format
-                writer.Write((short)clip.channels); // Channels
-                writer.Write(clip.frequency); // Sample rate
-                writer.Write(clip.frequency * clip.channels * 2); // Bytes per second
-                writer.Write((short)(clip.channels * 2)); // Block align
-                writer.Write((short)16); // Bits per sample
-                writer.Write(new char[] { 'd', 'a', 't', 'a' });
-                writer.Write(samples.Length * 2);
+                // Write WAV header
+                // "RIFF" chunk descriptor
+                writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
+                writer.Write(36 + intData.Length * 2); // File size
+                writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
                 
-                // Convert and write sample data
-                foreach (float sample in samples)
+                // "fmt " sub-chunk
+                writer.Write(new char[4] { 'f', 'm', 't', ' ' });
+                writer.Write(16); // Sub-chunk size
+                writer.Write((short)1); // Audio format (1 = PCM)
+                writer.Write((short)1); // Channels (1 = mono)
+                writer.Write(clip.frequency); // Sample rate
+                writer.Write(clip.frequency * 2); // Byte rate
+                writer.Write((short)2); // Block align
+                writer.Write((short)16); // Bits per sample
+                
+                // "data" sub-chunk
+                writer.Write(new char[4] { 'd', 'a', 't', 'a' });
+                writer.Write(intData.Length * 2); // Sub-chunk size
+                
+                // Write audio data
+                foreach (short sample in intData)
                 {
-                    writer.Write((short)(sample * 32767));
+                    writer.Write(sample);
                 }
             }
             
-            byte[] result = ms.ToArray();
-            Debug.Log($"WAV conversion complete: {result.Length} bytes");
-            return result;
+            return stream.ToArray();
         }
     }
     
@@ -148,6 +267,11 @@ public class AudioProcessor : MonoBehaviour
             return null;
         }
         
+        if (!_isInitialized)
+        {
+            Initialize();
+        }
+        
         try
         {
             Debug.Log($"Converting {audioData.Length} bytes of audio data to AudioClip");
@@ -159,7 +283,16 @@ public class AudioProcessor : MonoBehaviour
             }
             
             // WAV data can be directly converted to AudioClip
-            return ConvertWAVToAudioClip(audioData);
+            AudioClip clip = ConvertWAVToAudioClip(audioData);
+            
+            // Check if resampling is needed for playback on this platform
+            if (clip != null && clip.frequency != AudioSettings.outputSampleRate)
+            {
+                Debug.Log($"Resampling audio for playback from {clip.frequency}Hz to {AudioSettings.outputSampleRate}Hz");
+                clip = ResampleAudioClip(clip, AudioSettings.outputSampleRate);
+            }
+            
+            return clip;
         }
         catch (Exception ex)
         {
@@ -195,6 +328,7 @@ public class AudioProcessor : MonoBehaviour
     
     /// <summary>
     /// Converts WAV data directly to an AudioClip.
+    /// Enhanced with platform-specific handling for Mac compatibility.
     /// </summary>
     /// <param name="wavData">The WAV audio data.</param>
     /// <returns>An AudioClip created from WAV data.</returns>
